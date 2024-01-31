@@ -36,6 +36,7 @@ fun main(args: Array<String>) {
                 it,
                 json,
                 tokenBotTg,
+                airtable,
             )
         }
     }
@@ -45,6 +46,7 @@ fun handleUpdate(
     updateTg: Update,
     json: Json,
     botTokenTg: String,
+    airtable: Airtable,
 ) {
     val message = updateTg.message?.text ?: ""
     val chatId = updateTg.message?.chat?.id ?: updateTg.callbackQuery?.message?.chat?.id ?: return
@@ -61,7 +63,11 @@ fun handleUpdate(
         }
 
         data == "2" -> {
-            sendMessage(json, botTokenTg, chatId, "2")
+            val userData = airtable.getUpdateAt().records[0]
+            val humanData = userData.fields.humanData
+            val foodPreferance = userData.fields.foodPreferance
+            val excludeFood = userData.fields.excludeFood
+            sendMessage(json, botTokenTg, chatId, "$humanData\n$foodPreferance\n$excludeFood")
         }
 
         data == "3" -> {

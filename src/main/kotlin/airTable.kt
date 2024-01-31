@@ -27,16 +27,21 @@ data class Records(
 @Serializable
 data class Fields(
     @SerialName("userID")
-    val userID: Int,
+    val userID: String,
     @SerialName("humanData")
-    val humanData: String,
+    val humanData: String = "",
     @SerialName("foodPreferance")
-    val foodPreferance: String,
+    val foodPreferance: String = "",
     @SerialName("excludeFood")
-    val excludeFood: String,
+    val excludeFood: String = "",
 )
 
-class Airtable(private val botTokenAt: String, private val airBaseId: String, private val tableId: String, private val json: Json) {
+class Airtable(
+    private val botTokenAt: String,
+    private val airBaseId: String,
+    private val tableId: String,
+    private val json: Json
+) {
 
     fun getUpdateAt(): ResponseAt {
         val resultAt = runCatching { getAirtable() }.getOrNull() ?: ""
@@ -47,7 +52,7 @@ class Airtable(private val botTokenAt: String, private val airBaseId: String, pr
     private fun getAirtable(): String {
         val client = OkHttpClient()
         val request = Request.Builder()
-            .url("https://api.airtable.com/v0/app$airBaseId/$tableId")
+            .url("https://api.airtable.com/v0/$airBaseId/$tableId")
             .get()
             .addHeader("Authorization", "Bearer $botTokenAt")
             .build()
@@ -68,7 +73,7 @@ class Airtable(private val botTokenAt: String, private val airBaseId: String, pr
         val postData = "{\"fields\": {$fieldsJson}}"
         val requestBody = postData.toRequestBody("application/json".toMediaTypeOrNull())
         val request = Request.Builder()
-            .url("https://api.airtable.com/v0/app$airBaseId/$tableId")
+            .url("https://api.airtable.com/v0/$airBaseId/$tableId")
             .post(requestBody)
             .addHeader("Authorization", "Bearer $botTokenAt")
             .build()
@@ -89,7 +94,7 @@ class Airtable(private val botTokenAt: String, private val airBaseId: String, pr
         val postData = "{\"fields\": {$fieldsJson}}"
         val requestBody = postData.toRequestBody("application/json".toMediaTypeOrNull())
         val request = Request.Builder()
-            .url("https://api.airtable.com/v0/app$airBaseId/$tableId/$recordId")
+            .url("https://api.airtable.com/v0/$airBaseId/$tableId/$recordId")
             .put(requestBody)
             .addHeader("Authorization", "Bearer $botTokenAt")
             .build()
@@ -104,7 +109,7 @@ class Airtable(private val botTokenAt: String, private val airBaseId: String, pr
 
     fun patchAirtable(recordId: String, fields: Map<String, String>): String {
         val client = OkHttpClient()
-        val url = "https://api.airtable.com/v0/app$airBaseId/$tableId/$recordId"
+        val url = "https://api.airtable.com/v0/$airBaseId/$tableId/$recordId"
         val json = "application/json; charset=utf-8".toMediaTypeOrNull()
         val requestBody = "{\"fields\":${fields.toAirtableFieldsJson()}}".toRequestBody(json)
         val request = Request.Builder()
@@ -124,7 +129,7 @@ class Airtable(private val botTokenAt: String, private val airBaseId: String, pr
     fun deleteAirtable(recordId: String): String {
         val client = OkHttpClient()
         val request = Request.Builder()
-            .url("https://api.airtable.com/v0/app$airBaseId/$tableId/$recordId")
+            .url("https://api.airtable.com/v0/$airBaseId/$tableId/$recordId")
             .delete()
             .addHeader("Authorization", "Bearer $botTokenAt")
             .build()
