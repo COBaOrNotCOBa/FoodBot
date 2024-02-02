@@ -6,11 +6,11 @@ fun main(args: Array<String>) {
     val tokenBotAt = args[1]
     val baseIdAt = args[2]
     val tableIdAt = args[3]
+    val tokenGPT = args[4]
     var lastUpdateId = 0L
     val json = Json { ignoreUnknownKeys = true }
 //создаем класс таблицы из АТ
     val airtable = Airtable(tokenBotAt, baseIdAt, tableIdAt, json)
-
 //меню команд в телеграмме
     botCommand(
         json, tokenBotTg, listOf(BotCommand("start", "Глвное меню"))
@@ -37,16 +37,19 @@ fun main(args: Array<String>) {
                 json,
                 tokenBotTg,
                 airtable,
+                tokenGPT,
             )
         }
     }
 }
+
 //разбиваем апдейт на куски
 fun handleUpdate(
     updateTg: Update,
     json: Json,
     botTokenTg: String,
     airtable: Airtable,
+    tokenGPT: String,
 ) {
     val message = updateTg.message?.text ?: ""
     val chatId = updateTg.message?.chat?.id ?: updateTg.callbackQuery?.message?.chat?.id ?: return
@@ -63,15 +66,19 @@ fun handleUpdate(
         }
 
         data == "2" -> {
-            val userData = airtable.getUpdateAt().records[0]
-            val humanData = userData.fields.humanData
-            val foodPreferance = userData.fields.foodPreferance
-            val excludeFood = userData.fields.excludeFood
+            val userData = airtable.getUpdateAt().records
+            val humanData = userData[0].fields.humanData
+            val foodPreferance = userData[0].fields.foodPreferance
+            val excludeFood = userData[0].fields.excludeFood
             sendMessage(json, botTokenTg, chatId, "$humanData\n$foodPreferance\n$excludeFood")
         }
 
         data == "3" -> {
-            sendMessage(json, botTokenTg, chatId, "3")
+            val folderId = "ajejmadk7ai886qpha8e"
+            val promptFilePath = "src/main/kotlin/pompt.json"
+            val gptBot = GptBot(tokenGPT, folderId, promptFilePath, json)
+            val gptReq = gptBot.getUpdateGpt().result.alternatives[0].message.text
+            sendMessage(json, botTokenTg, chatId, gptReq)
         }
     }
 }
