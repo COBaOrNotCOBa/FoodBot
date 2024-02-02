@@ -5,7 +5,9 @@ import kotlinx.serialization.json.Json
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
 
 @Serializable
 data class ResponseTg(
@@ -138,6 +140,24 @@ fun sendMenu(json: Json, botToken: String, chatId: Long): String {
         .header("Content-type", "application/json")
         .post(requestBodyJson)
         .build()
+    val response = client.newCall(request).execute()
+    return response.body?.string() ?: ""
+}
+
+fun sendDocument(json: Json, botToken: String, chatId: Long, file: File, caption: String? = null): String {
+    val sendDocumentUrl = "https://api.telegram.org/bot$botToken/sendDocument"
+    val requestBody = MultipartBody.Builder()
+        .setType(MultipartBody.FORM)
+        .addFormDataPart("chat_id", chatId.toString())
+        .addFormDataPart("document", file.name, file.asRequestBody("application/pdf".toMediaTypeOrNull()))
+    caption?.let {
+        requestBody.addFormDataPart("caption", it)
+    }
+    val request = Request.Builder()
+        .url(sendDocumentUrl)
+        .post(requestBody.build())
+        .build()
+    val client = OkHttpClient()
     val response = client.newCall(request).execute()
     return response.body?.string() ?: ""
 }
