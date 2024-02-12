@@ -1,3 +1,7 @@
+import com.itextpdf.kernel.pdf.PdfDocument
+import com.itextpdf.kernel.pdf.PdfWriter
+import com.itextpdf.layout.Document
+import com.itextpdf.layout.element.Paragraph
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -8,6 +12,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
+import java.io.FileOutputStream
 
 @Serializable
 data class ResponseTg(
@@ -144,12 +149,13 @@ fun sendMenu(json: Json, botToken: String, chatId: Long): String {
     return response.body?.string() ?: ""
 }
 
-fun sendDocument(json: Json, botToken: String, chatId: Long, file: File, caption: String? = null): String {
+fun sendDocument(json: Json, botToken: String, chatId: Long, pdfFile: File, caption: String? = null): String {
     val sendDocumentUrl = "https://api.telegram.org/bot$botToken/sendDocument"
+
     val requestBody = MultipartBody.Builder()
         .setType(MultipartBody.FORM)
         .addFormDataPart("chat_id", chatId.toString())
-        .addFormDataPart("document", file.name, file.asRequestBody("application/pdf".toMediaTypeOrNull()))
+        .addFormDataPart("document", pdfFile.name, pdfFile.asRequestBody("application/pdf".toMediaTypeOrNull()))
     caption?.let {
         requestBody.addFormDataPart("caption", it)
     }
@@ -157,6 +163,7 @@ fun sendDocument(json: Json, botToken: String, chatId: Long, file: File, caption
         .url(sendDocumentUrl)
         .post(requestBody.build())
         .build()
+
     val client = OkHttpClient()
     val response = client.newCall(request).execute()
     return response.body?.string() ?: ""

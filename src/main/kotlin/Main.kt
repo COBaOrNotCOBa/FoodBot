@@ -78,7 +78,10 @@ fun handleUpdate(
             val promptFilePath = "src/main/kotlin/pompt.json"
             val gptBot = GptBot(tokenGPT, folderId, promptFilePath, json)
             val gptReq = gptBot.getUpdateGpt().result.alternatives[0].message.text
+//            val filePath = "src/main/kotlin/PdfFilesToUsers/1.pdf"
+//            val filePdfToSendUser = FilePdf().createPdf(filePath,gptReq)
             sendMessage(json, botTokenTg, chatId, gptReq)
+//            sendDocument(json, botTokenTg, chatId, filePdfToSendUser, gptReq)
         }
     }
 }
