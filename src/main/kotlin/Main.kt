@@ -75,7 +75,7 @@ fun handleUpdate(
 
         data == "3" -> {
             val folderId = "ajejmadk7ai886qpha8e"
-            val promptFilePath = "src/main/kotlin/pompt.json"
+            val promptFilePath = "src/main/kotlin/prompt.json"
             val gptBot = GptBot(tokenGPT, folderId, promptFilePath, json)
             val gptReq = gptBot.getUpdateGpt().result.alternatives[0].message.text
 //            val filePath = "src/main/kotlin/PdfFilesToUsers/1.pdf"
