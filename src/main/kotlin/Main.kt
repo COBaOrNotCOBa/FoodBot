@@ -11,6 +11,8 @@ fun main(args: Array<String>) {
     val json = Json { ignoreUnknownKeys = true }
 //создаем класс таблицы из АТ
     val airtable = Airtable(tokenBotAt, baseIdAt, tableIdAt, json)
+//создаем список пользователей которые вводят данные
+    val waitingForInput = mutableMapOf<Long, UserInput>()
 //меню команд в телеграмме
     botCommand(
         json, tokenBotTg, listOf(BotCommand("start", "Глвное меню"))
@@ -38,6 +40,7 @@ fun main(args: Array<String>) {
                 tokenBotTg,
                 airtable,
                 tokenGPT,
+                waitingForInput,
             )
         }
     }
@@ -49,39 +52,91 @@ fun handleUpdate(
     json: Json,
     botTokenTg: String,
     airtable: Airtable,
-    tokenGPT: String,
+    tokenGpt: String,
+    waitingForInput: MutableMap<Long, UserInput>,
 ) {
     val message = updateTg.message?.text ?: ""
     val chatId = updateTg.message?.chat?.id ?: updateTg.callbackQuery?.message?.chat?.id ?: return
     val data = updateTg.callbackQuery?.data ?: ""
+//проверяем есть ли юзер в базе
+    val listOfUsers = mutableMapOf<String, String>()
+    listOfUsers.putAll(airtable.loadListOfUsersId())
+    var userIdAt = airtable.checkUserInBase(listOfUsers, chatId.toString())
+    if (userIdAt == null) {
+        val userIdFromAt = airtable.getIdForNewUser(mapOf("userID" to chatId.toString()))
+        listOfUsers[chatId.toString()] = userIdFromAt.id
+        airtable.saveListOfUsersId(listOfUsers)
+        userIdAt = userIdFromAt.id
+        waitingForInput[chatId] = UserInput(1, "")
+        sendMessage(
+            json,
+            botTokenTg,
+            chatId,
+            "Здраствуйте!\nДля более точных рекомендаций, ответьте пожалуйста на несколько вопросов."
+        )
+        sendMessage(json, botTokenTg, chatId, "Введите ваш пол (М/Ж)")
+    }
 //обрабатываем команду или сообщение от пользователя
     when {
 //Стартовое меню
         message.lowercase() == MAIN_MENU || data == MAIN_MENU -> {
             sendMenu(json, botTokenTg, chatId)
         }
-
-        data == "1" -> {
-            sendMessage(json, botTokenTg, chatId, "1")
-        }
-
-        data == "2" -> {
-            val userData = airtable.getUpdateAt().records
-            val humanData = userData[0].fields.humanData
-            val foodPreferance = userData[0].fields.foodPreferance
-            val excludeFood = userData[0].fields.excludeFood
-            sendMessage(json, botTokenTg, chatId, "$humanData\n$foodPreferance\n$excludeFood")
-        }
-
-        data == "3" -> {
+//выслать меню на неделю пользователю
+        data == MenuItem.ITEM_1.menuItem -> {
+            sendMessage(json, botTokenTg, chatId, "Немного подождите")
             val folderId = "ajejmadk7ai886qpha8e"
             val promptFilePath = "src/main/kotlin/prompt.json"
-            val gptBot = GptBot(tokenGPT, folderId, promptFilePath, json)
-            val gptReq = gptBot.getUpdateGpt().result.alternatives[0].message.text
+            val gptBot = GptBot(tokenGpt, folderId, promptFilePath, json)
+            val gptRequest = gptBot.getUpdateGpt().result.alternatives[0].message.text
 //            val filePath = "src/main/kotlin/PdfFilesToUsers/1.pdf"
 //            val filePdfToSendUser = FilePdf().createPdf(filePath,gptReq)
-            sendMessage(json, botTokenTg, chatId, gptReq)
+            sendMessage(json, botTokenTg, chatId, gptRequest)
 //            sendDocument(json, botTokenTg, chatId, filePdfToSendUser, gptReq)
+        }
+
+        data == MenuItem.ITEM_2.menuItem -> {
+            sendDataMenu(json,botTokenTg,chatId)
+        }
+
+//просмотр данных пользователя
+        data == MenuItem.ITEM_3.menuItem -> {
+            val userData = airtable.getUpdateRecord(userIdAt)
+            val humanData = userData.fields.humanData
+            sendMessage(json, botTokenTg, chatId, "Текущие данные:\n1.$humanData")
+        }
+//изменить данные пользователя
+        data == MenuItem.ITEM_4.menuItem -> {
+            waitingForInput[chatId] = UserInput(1, "")
+            sendMessage(json, botTokenTg, chatId, "Введите ваш пол (Мужской/Женский)")
+        }
+//просмотр предпочтений в еде
+        data == MenuItem.ITEM_5.menuItem -> {
+            val userData = airtable.getUpdateRecord(userIdAt)
+            val foodPreferences = userData.fields.foodPreferences
+            val excludeFood = userData.fields.excludeFood
+            sendMessage(json, botTokenTg, chatId, "Текущие данные:\n1.$foodPreferences\n2.$excludeFood")
+        }
+//изменить предпочтения в еде
+        data == MenuItem.ITEM_6.menuItem -> {
+            println("6")
+        }
+//просмотр исключений в еде
+        data == MenuItem.ITEM_7.menuItem -> {
+            println("7")
+        }
+//изменить исключения в еде
+        data == MenuItem.ITEM_8.menuItem -> {
+            println("8")
+        }
+
+        else -> {
+//ожидание ввода даных от пользователя
+            if (waitingForInput.containsKey(chatId)) {
+                val step = userInputData(json, botTokenTg, chatId, waitingForInput[chatId], message, airtable, userIdAt)
+                println(step)
+                if (step == 0) waitingForInput.remove(chatId)
+            }
         }
     }
 }
