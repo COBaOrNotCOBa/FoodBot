@@ -5,6 +5,8 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
+import java.io.FileWriter
 import java.io.IOException
 
 @Serializable
@@ -30,7 +32,7 @@ data class Fields(
     @SerialName("humanData")
     val humanData: String = "",
     @SerialName("foodPreferance")
-    val foodPreferance: String = "",
+    val foodPreferences: String = "",
     @SerialName("excludeFood")
     val excludeFood: String = "",
 )
@@ -64,7 +66,35 @@ class Airtable(
         }
     }
 
-    fun postAirtable(fields: Map<String, String>): String {
+    fun getUpdateRecord(recordId: String): Records {
+        val resultRecord = runCatching { getUserData(recordId) }.getOrNull() ?: ""
+        println(resultRecord)
+        return json.decodeFromString(resultRecord)
+    }
+
+    private fun getUserData(recordId: String): String {
+        val client = OkHttpClient()
+        val request = Request.Builder()
+            .url("https://api.airtable.com/v0/$airBaseId/$tableId/$recordId")
+            .get()
+            .addHeader("Authorization", "Bearer $botTokenAt")
+            .build()
+        return try {
+            val response = client.newCall(request).execute()
+            response.body?.string() ?: ""
+        } catch (e: IOException) {
+            println("Error deleting record from Airtable: ${e.message}")
+            ""
+        }
+    }
+
+    fun getIdForNewUser(fields: Map<String, String>): Records {
+        val resultRecord = runCatching { postAirtable(fields) }.getOrNull() ?: ""
+        println(resultRecord)
+        return json.decodeFromString(resultRecord)
+    }
+
+    private fun postAirtable(fields: Map<String, String>): String {
         val client = OkHttpClient()
         val fieldsJson = fields.entries.joinToString(separator = ",") {
             "\"${it.key}\":\"${it.value}\""
@@ -141,6 +171,40 @@ class Airtable(
         }
     }
 
+    //проверяем есть ли текущий пользователь в списке
+    fun checkUserInBase(loadListOfUsersId: Map<String, String>, userIdTg: String): String? {
+        return loadListOfUsersId[userIdTg]
+    }
+
+    //загружаем существующий список пользователей
+    fun loadListOfUsersId(): Map<String, String> {
+        try {
+            val wordsFile: File = File("src/main/kotlin/Users.txt")
+            val listOfUsers: MutableMap<String, String> = mutableMapOf()
+            wordsFile.readLines().forEach {
+                val line = it.split("|")
+                listOfUsers[line[0]] = line[1]
+            }
+            return listOfUsers
+        } catch (e: IndexOutOfBoundsException) {
+            throw IllegalStateException("Некорректный файл")
+        }
+    }
+
+    //заносим нового пользователя в список
+    fun saveListOfUsersId(listOfUsers: Map<String, String>) {
+        try {
+            val wordsFile: File = File("src/main/kotlin/Users.txt")
+            val writer = FileWriter(wordsFile)
+            listOfUsers.forEach { (key, value) ->
+                writer.write("$key|$value\n")
+            }
+            writer.close()
+        } catch (e: IOException) {
+            throw IllegalStateException("Не удалось записать в файл")
+        }
+    }
+    
     private fun Map<String, String>.toAirtableFieldsJson(): String {
         return entries.joinToString(separator = ",") { (key, value) ->
             "\"$key\":\"$value\""

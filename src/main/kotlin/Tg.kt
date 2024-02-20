@@ -126,13 +126,50 @@ fun sendMenu(json: Json, botToken: String, chatId: Long): String {
         replyMarkup = ReplyMarkup(
             listOf(
                 listOf(
-                    InlineKeyboard(callbackData = "1", text = "Ввести/изменить свои данные"),
+                    InlineKeyboard( MenuItem.ITEM_1.menuItem,  MenuItem.ITEM_1.menuText),
                 ),
                 listOf(
-                    InlineKeyboard(callbackData = "2", text = "Ввести/изменить предпочтния в еде"),
+                    InlineKeyboard( MenuItem.ITEM_2.menuItem,  MenuItem.ITEM_2.menuText),
+                ),
+            )
+        )
+    )
+    val requestBodyString = json.encodeToString(requestBody)
+    val client = OkHttpClient()
+    val requestBodyJson = requestBodyString.toRequestBody("application/json".toMediaType())
+    val request = Request.Builder()
+        .url(sendMessage)
+        .header("Content-type", "application/json")
+        .post(requestBodyJson)
+        .build()
+    val response = client.newCall(request).execute()
+    return response.body?.string() ?: ""
+}
+
+fun sendDataMenu(json: Json, botToken: String, chatId: Long): String {
+    val sendMessage = "https://api.telegram.org/bot$botToken/sendMessage"
+    val requestBody = SendMessageRequest(
+        chatId = chatId,
+        text = "Доброго времени суток!",
+        replyMarkup = ReplyMarkup(
+            listOf(
+                listOf(
+                    InlineKeyboard( MenuItem.ITEM_3.menuItem,  MenuItem.ITEM_3.menuText),
                 ),
                 listOf(
-                    InlineKeyboard(callbackData = "3", text = "Жратвы мне на неделю! "),
+                    InlineKeyboard( MenuItem.ITEM_4.menuItem,  MenuItem.ITEM_4.menuText),
+                ),
+                listOf(
+                    InlineKeyboard( MenuItem.ITEM_5.menuItem,  MenuItem.ITEM_5.menuText),
+                ),
+                listOf(
+                    InlineKeyboard( MenuItem.ITEM_6.menuItem,  MenuItem.ITEM_6.menuText),
+                ),
+                listOf(
+                    InlineKeyboard( MenuItem.ITEM_7.menuItem,  MenuItem.ITEM_7.menuText),
+                ),
+                listOf(
+                    InlineKeyboard( MenuItem.ITEM_8.menuItem,  MenuItem.ITEM_8.menuText),
                 ),
             )
         )
@@ -187,3 +224,13 @@ fun botCommand(json: Json, botTokenTg: String, command: List<BotCommand>) {
 }
 
 const val MAIN_MENU = "/start"
+enum class MenuItem(val menuItem : String, val menuText : String) {
+    ITEM_1 ("1","Рекомендации блюд для меня!"),
+    ITEM_2("2","Просмотр/изменение своих данных"),
+    ITEM_3("3","Просмотр моих данных (пол, возраст, рост, вес)"),
+    ITEM_4("4","Изменение моих данных (пол, возраст, рост, вес)"),
+    ITEM_5("5","Просмотр предпочтений в еде"),
+    ITEM_6("6","Изменение предпочтений в еде"),
+    ITEM_7("7","Просмотр исключённых продуктов"),
+    ITEM_8("8","Изменение исключённых продуктов"),
+}

@@ -2,3 +2,4 @@
 /build/
 /src/main/kotlin/PdfFilesToUsers/
 /.idea/
+/src/main/kotlin/Users.txt
