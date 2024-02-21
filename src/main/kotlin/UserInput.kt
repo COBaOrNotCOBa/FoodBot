@@ -14,26 +14,60 @@ fun userInputData(
     userInput ?: return 0
     when (userInput.step) {
         1 -> {
-            userInput.date = message
             userInput.step = 2
+            sendMessage(
+                json,
+                botTokenTg,
+                chatId,
+                "Для более точных рекомендаций блюд, ответьте пожалуйста на несколько вопросов.\n" +
+                        "Введите ваш пол (Мужской/Женский)"
+            )
+        }
+
+        2 -> {
+            userInput.date = message
+            userInput.step = 3
             sendMessage(json, botTokenTg, chatId, "Введите ваш год рождения:")
         }
-        2 -> {
-            userInput.date = userInput.date + "|" + message
-            userInput.step = 3
-            sendMessage(json, botTokenTg, chatId, "Введите ваш рост:")
-        }
+
         3 -> {
             userInput.date = userInput.date + "|" + message
             userInput.step = 4
+            sendMessage(json, botTokenTg, chatId, "Введите ваш рост:")
+        }
+
+        4 -> {
+            userInput.date = userInput.date + "|" + message
+            userInput.step = 5
             sendMessage(json, botTokenTg, chatId, "Введите ваш вес:")
         }
-        4 -> {
+
+        5 -> {
             userInput.date = userInput.date + "|" + message
             userInput.step = 0
             airtable.patchAirtable(userIdAt, mapOf("humanData" to userInput.date))
-            sendMessage(json, botTokenTg, chatId, "Ваши данные записаны")
+            sendMessage(json, botTokenTg, chatId, "Ваши данные записаны!")
+            sendDataMenu(json,botTokenTg,chatId)
         }
+
+        6 -> {
+            if (userInput.date == "") {
+                userInput.date = message
+            } else {
+                userInput.date = userInput.date + "|" + message
+            }
+            sendFoodPreferencesMenu(json,botTokenTg,chatId)
+        }
+
+        7 -> {
+            if (userInput.date == "") {
+                userInput.date = message
+            } else {
+                userInput.date = userInput.date + "|" + message
+            }
+            sendFoodExcludeMenu(json,botTokenTg,chatId)
+        }
+
     }
     return userInput.step
 }

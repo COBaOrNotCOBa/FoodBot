@@ -31,10 +31,10 @@ data class Fields(
     val userID: String,
     @SerialName("humanData")
     val humanData: String = "",
-    @SerialName("foodPreferance")
+    @SerialName("foodPreferences")
     val foodPreferences: String = "",
-    @SerialName("excludeFood")
-    val excludeFood: String = "",
+    @SerialName("foodExclude")
+    val foodExclude: String = "",
 )
 
 class Airtable(
