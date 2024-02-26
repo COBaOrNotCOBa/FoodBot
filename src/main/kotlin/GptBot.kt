@@ -1,11 +1,11 @@
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.File
 
 @Serializable
 data class ResponseGpt(
@@ -31,12 +31,43 @@ data class TextGpt(
     val text: String,
 )
 
+
+@Serializable
+data class RequestGpt(
+    @SerialName("modelUri")
+    val modelUri: String = "gpt://b1gidtrrq0kiv3kf31u2/yandexgpt-lite",
+    @SerialName("completionOptions")
+    val completionOptions: CompletionOptions,
+    @SerialName("messages")
+    val messages: List<Role>,
+)
+
+@Serializable
+data class CompletionOptions(
+    @SerialName("stream")
+    val stream: Boolean = false,
+    @SerialName("temperature")
+    val temperature: Double = 0.6,
+    @SerialName("maxTokens")
+    val maxTokens: String = "2000",
+)
+
+@Serializable
+data class Role(
+    @SerialName("role")
+    val role: String,
+    @SerialName("text")
+    val text: String,
+)
+
 class GptBot(
+    private val json: Json,
     private val botToken: String,
-    private val folderId: String,
-    private val promptFilePath: String,
-    private val json: Json
+    private val requestGpt: String,
 ) {
+
+    private val folderId: String = "ajejmadk7ai886qpha8e"
+//    private val promptJson = json.encodeToString(requestGpt)
 
     fun getUpdateGpt(): ResponseGpt {
         val resultGpt = runCatching { sendGptRequest() }.getOrNull() ?: ""
@@ -46,10 +77,8 @@ class GptBot(
 
     private fun sendGptRequest(): String {
         val gptUrl = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
-        val promptFile = File(promptFilePath)
-        val promptJson = promptFile.readText()
         val client = OkHttpClient()
-        val requestBody = promptJson.toRequestBody("application/json".toMediaType())
+        val requestBody = requestGpt.toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
             .url(gptUrl)
             .header("Content-Type", "application/json")

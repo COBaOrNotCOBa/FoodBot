@@ -126,10 +126,10 @@ fun sendMenu(json: Json, botToken: String, chatId: Long): String {
         replyMarkup = ReplyMarkup(
             listOf(
                 listOf(
-                    InlineKeyboard( MenuItem.ITEM_1.menuItem,  MenuItem.ITEM_1.menuText),
+                    InlineKeyboard(MenuItem.ITEM_1.menuItem, MenuItem.ITEM_1.menuText),
                 ),
                 listOf(
-                    InlineKeyboard( MenuItem.ITEM_2.menuItem,  MenuItem.ITEM_2.menuText),
+                    InlineKeyboard(MenuItem.ITEM_2.menuItem, MenuItem.ITEM_2.menuText),
                 ),
             )
         )
@@ -154,25 +154,25 @@ fun sendDataMenu(json: Json, botToken: String, chatId: Long): String {
         replyMarkup = ReplyMarkup(
             listOf(
                 listOf(
-                    InlineKeyboard( MenuItem.ITEM_3.menuItem,  MenuItem.ITEM_3.menuText),
+                    InlineKeyboard(MenuItem.ITEM_3.menuItem, MenuItem.ITEM_3.menuText),
                 ),
                 listOf(
-                    InlineKeyboard( MenuItem.ITEM_4.menuItem,  MenuItem.ITEM_4.menuText),
+                    InlineKeyboard(MenuItem.ITEM_4.menuItem, MenuItem.ITEM_4.menuText),
                 ),
                 listOf(
-                    InlineKeyboard( MenuItem.ITEM_5.menuItem,  MenuItem.ITEM_5.menuText),
+                    InlineKeyboard(MenuItem.ITEM_5.menuItem, MenuItem.ITEM_5.menuText),
                 ),
                 listOf(
-                    InlineKeyboard( MenuItem.ITEM_6.menuItem,  MenuItem.ITEM_6.menuText),
+                    InlineKeyboard(MenuItem.ITEM_6.menuItem, MenuItem.ITEM_6.menuText),
                 ),
                 listOf(
-                    InlineKeyboard( MenuItem.ITEM_7.menuItem,  MenuItem.ITEM_7.menuText),
+                    InlineKeyboard(MenuItem.ITEM_7.menuItem, MenuItem.ITEM_7.menuText),
                 ),
                 listOf(
-                    InlineKeyboard( MenuItem.ITEM_8.menuItem,  MenuItem.ITEM_8.menuText),
+                    InlineKeyboard(MenuItem.ITEM_8.menuItem, MenuItem.ITEM_8.menuText),
                 ),
                 listOf(
-                    InlineKeyboard( MAIN_MENU,  "В главное меню"),
+                    InlineKeyboard(MAIN_MENU, "В главное меню"),
                 ),
             )
         )
@@ -217,10 +217,10 @@ fun sendFoodPreferencesMenu(json: Json, botToken: String, chatId: Long): String 
         replyMarkup = ReplyMarkup(
             listOf(
                 listOf(
-                    InlineKeyboard( "foodPreferencesSave",  "Занести в базу ваши предпочтения"),
+                    InlineKeyboard("foodPreferencesSave", "Занести в базу ваши предпочтения"),
                 ),
                 listOf(
-                    InlineKeyboard( "stopUserInput",  "Отмена записи"),
+                    InlineKeyboard("stopUserInput", "Отмена записи"),
                 ),
             )
         )
@@ -245,10 +245,10 @@ fun sendFoodExcludeMenu(json: Json, botToken: String, chatId: Long): String {
         replyMarkup = ReplyMarkup(
             listOf(
                 listOf(
-                    InlineKeyboard( "foodExcludeSave",  "Занести в базу ваши исключения"),
+                    InlineKeyboard("foodExcludeSave", "Занести в базу ваши исключения"),
                 ),
                 listOf(
-                    InlineKeyboard( "stopUserInput",  "Отмена записи"),
+                    InlineKeyboard("stopUserInput", "Отмена записи"),
                 ),
             )
         )
@@ -283,13 +283,14 @@ fun botCommand(json: Json, botTokenTg: String, command: List<BotCommand>) {
 }
 
 const val MAIN_MENU = "/start"
-enum class MenuItem(val menuItem : String, val menuText : String) {
-    ITEM_1 ("1","Рекомендации блюд для меня!"),
-    ITEM_2("2","Просмотр/изменение своих данных"),
-    ITEM_3("3","Просмотр моих данных (пол, возраст, рост, вес)"),
-    ITEM_4("4","Изменение моих данных (пол, возраст, рост, вес)"),
-    ITEM_5("5","Просмотр предпочтений в еде"),
-    ITEM_6("6","Изменить предпочетаемые продукты"),
-    ITEM_7("7","Просмотр исключённых продуктов"),
-    ITEM_8("8","Изменить исключаемые продукты"),
+
+enum class MenuItem(val menuItem: String, val menuText: String) {
+    ITEM_1("1", "Рекомендации блюд для меня! (Работаем над улучшением)"),
+    ITEM_2("2", "Просмотр/изменение своих данных"),
+    ITEM_3("3", "Просмотр моих данных"),
+    ITEM_4("4", "Изменение моих данных"),
+    ITEM_5("5", "Просмотр предпочтений в еде"),
+    ITEM_6("6", "Изменить предпочетаемые продукты"),
+    ITEM_7("7", "Просмотр исключённых продуктов"),
+    ITEM_8("8", "Изменить исключаемые продукты"),
 }
