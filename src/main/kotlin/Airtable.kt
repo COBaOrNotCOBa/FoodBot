@@ -38,7 +38,7 @@ data class Fields(
 )
 
 class Airtable(
-    private val botTokenAt: String,
+    private val tokenBotAt: String,
     private val airBaseId: String,
     private val tableId: String,
     private val json: Json
@@ -55,7 +55,7 @@ class Airtable(
         val request = Request.Builder()
             .url("https://api.airtable.com/v0/$airBaseId/$tableId")
             .get()
-            .addHeader("Authorization", "Bearer $botTokenAt")
+            .addHeader("Authorization", "Bearer $tokenBotAt")
             .build()
         return try {
             val response = client.newCall(request).execute()
@@ -77,7 +77,7 @@ class Airtable(
         val request = Request.Builder()
             .url("https://api.airtable.com/v0/$airBaseId/$tableId/$recordId")
             .get()
-            .addHeader("Authorization", "Bearer $botTokenAt")
+            .addHeader("Authorization", "Bearer $tokenBotAt")
             .build()
         return try {
             val response = client.newCall(request).execute()
@@ -104,7 +104,7 @@ class Airtable(
         val request = Request.Builder()
             .url("https://api.airtable.com/v0/$airBaseId/$tableId")
             .post(requestBody)
-            .addHeader("Authorization", "Bearer $botTokenAt")
+            .addHeader("Authorization", "Bearer $tokenBotAt")
             .build()
         return try {
             val response = client.newCall(request).execute()
@@ -125,7 +125,7 @@ class Airtable(
         val request = Request.Builder()
             .url("https://api.airtable.com/v0/$airBaseId/$tableId/$recordId")
             .put(requestBody)
-            .addHeader("Authorization", "Bearer $botTokenAt")
+            .addHeader("Authorization", "Bearer $tokenBotAt")
             .build()
         return try {
             val response = client.newCall(request).execute()
@@ -144,7 +144,7 @@ class Airtable(
         val request = Request.Builder()
             .url(url)
             .patch(requestBody)
-            .addHeader("Authorization", "Bearer $botTokenAt")
+            .addHeader("Authorization", "Bearer $tokenBotAt")
             .build()
         return try {
             val response = client.newCall(request).execute()
@@ -160,7 +160,7 @@ class Airtable(
         val request = Request.Builder()
             .url("https://api.airtable.com/v0/$airBaseId/$tableId/$recordId")
             .delete()
-            .addHeader("Authorization", "Bearer $botTokenAt")
+            .addHeader("Authorization", "Bearer $tokenBotAt")
             .build()
         return try {
             val response = client.newCall(request).execute()
