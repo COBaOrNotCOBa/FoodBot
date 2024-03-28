@@ -117,44 +117,6 @@ fun handleUpdate(
 //выслать меню на неделю пользователю
         data == MenuItem.ITEM_1.menuItem -> {
             sendGenerationMenu(json, tokenBotTg, chatId)
-//            try {
-//                val userDataFullRecord = airtable.getUpdateRecord(userIdAt)
-//                val humanData = userDataFullRecord.fields.humanData
-//                val foodPreferences = userDataFullRecord.fields.foodPreferences
-//                val foodExclude = userDataFullRecord.fields.foodExclude
-//                val systemGptText = "Покупка продуктов и приготовление из них еды"
-//                val userGptText =
-//                    "Пришли мне список продуктов и их вес который нужно купить оптом в магазине на неделю" +
-//                            "основываясь на том что я люблю и что исключить, также отправлю тебе свои общие данные. " +
-//                            "Мои данные $humanData. " +
-//                            "Так же приведи примеры блюд с рецептами из этих продуктов на неделю. " +
-//                            "Исключить следущие продукты: $foodExclude. Мои любимые продукты $foodPreferences. " +
-//                            "Не давай точных рекомендаций, подойдут приблизительные варианты"
-//                val prompt = "{\n" +
-//                        "  \"modelUri\": \"gpt://b1gidtrrq0kiv3kf31u2/yandexgpt-lite\",\n" +
-//                        "  \"completionOptions\": {\n" +
-//                        "    \"stream\": false,\n" +
-//                        "    \"temperature\": 0.6,\n" +
-//                        "    \"maxTokens\": \"2000\"\n" +
-//                        "  },\n" +
-//                        "  \"messages\": [\n" +
-//                        "    {\n" +
-//                        "      \"role\": \"system\",\n" +
-//                        "      \"text\": \"$systemGptText\"\n" +
-//                        "    },\n" +
-//                        "    {\n" +
-//                        "      \"role\": \"user\",\n" +
-//                        "      \"text\": \"$userGptText\"\n" +
-//                        "    }\n" +
-//                        "  ]\n" +
-//                        "}"
-//                val gptBot = GptBot(json, tokenBotGpt, prompt)
-//                val gptRequest = gptBot.getUpdateGpt().result.alternatives[0].message.text
-//                sendMessage(json, tokenBotTg, chatId, gptRequest)
-//
-//            } catch (e: Exception) {
-//                e.printStackTrace()
-//            }
         }
 //Список продуктов для покупки сгенерированный ботом
         data == MenuItem.ITEM_9.menuItem -> {
