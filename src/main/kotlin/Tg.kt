@@ -1,7 +1,3 @@
-import com.itextpdf.kernel.pdf.PdfDocument
-import com.itextpdf.kernel.pdf.PdfWriter
-import com.itextpdf.layout.Document
-import com.itextpdf.layout.element.Paragraph
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -12,7 +8,6 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
-import java.io.FileOutputStream
 
 @Serializable
 data class ResponseTg(
@@ -63,6 +58,14 @@ data class SendMessageRequest(
 )
 
 @Serializable
+data class SendMessageRequestNoText(
+    @SerialName("chat_id")
+    val chatId: Long?,
+    @SerialName("reply_markup")
+    val replyMarkup: ReplyMarkup? = null,
+)
+
+@Serializable
 data class ReplyMarkup(
     @SerialName("inline_keyboard")
     val inlineKeyboard: List<List<InlineKeyboard>>,
@@ -90,8 +93,8 @@ data class BotCommand(
     val description: String
 )
 
-fun getUpdates(botToken: String, updateId: Long): String {
-    val urlGetUpdates = "https://api.telegram.org/bot$botToken/getUpdates?offset=$updateId"
+fun getUpdates(tokenBot: String, updateId: Long): String {
+    val urlGetUpdates = "https://api.telegram.org/bot$tokenBot/getUpdates?offset=$updateId"
     val client = OkHttpClient()
     val request = Request.Builder()
         .url(urlGetUpdates)
@@ -100,8 +103,8 @@ fun getUpdates(botToken: String, updateId: Long): String {
     return response.body?.string() ?: ""
 }
 
-fun sendMessage(json: Json, botToken: String, chatId: Long, message: String): String {
-    val sendMessage = "https://api.telegram.org/bot$botToken/sendMessage"
+fun sendMessage(json: Json, tokenBot: String, chatId: Long, message: String): String {
+    val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
     val requestBody = SendMessageRequest(
         chatId = chatId,
         text = message,
@@ -118,8 +121,8 @@ fun sendMessage(json: Json, botToken: String, chatId: Long, message: String): St
     return response.body?.string() ?: ""
 }
 
-fun sendMenu(json: Json, botToken: String, chatId: Long): String {
-    val sendMessage = "https://api.telegram.org/bot$botToken/sendMessage"
+fun sendMenu(json: Json, tokenBot: String, chatId: Long): String {
+    val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
     val requestBody = SendMessageRequest(
         chatId = chatId,
         text = "Доброго времени суток!",
@@ -146,25 +149,93 @@ fun sendMenu(json: Json, botToken: String, chatId: Long): String {
     return response.body?.string() ?: ""
 }
 
-fun sendDataMenu(json: Json, botToken: String, chatId: Long): String {
-    val sendMessage = "https://api.telegram.org/bot$botToken/sendMessage"
+fun sendGenerationMenu(json: Json, tokenBot: String, chatId: Long): String {
+    val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
+    val requestBody = SendMessageRequest(
+        chatId = chatId,
+        text = "*Здесь будет список рекомендуемых блюд*",
+        replyMarkup = ReplyMarkup(
+            listOf(
+                listOf(
+                    InlineKeyboard(MenuItem.ITEM_9.menuItem, MenuItem.ITEM_9.menuText),
+                ),
+                listOf(
+                    InlineKeyboard(MenuItem.ITEM_10.menuItem, MenuItem.ITEM_10.menuText),
+                ),
+            )
+        )
+    )
+    val requestBodyString = json.encodeToString(requestBody)
+    val client = OkHttpClient()
+    val requestBodyJson = requestBodyString.toRequestBody("application/json".toMediaType())
+    val request = Request.Builder()
+        .url(sendMessage)
+        .header("Content-type", "application/json")
+        .post(requestBodyJson)
+        .build()
+    val response = client.newCall(request).execute()
+    return response.body?.string() ?: ""
+}
+
+fun sendChangingMenu(json: Json, tokenBot: String, chatId: Long): String {
+    val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
     val requestBody = SendMessageRequest(
         chatId = chatId,
         text = "Нажмите на нужную кнопку",
         replyMarkup = ReplyMarkup(
             listOf(
                 listOf(
+                    InlineKeyboard(MenuItem.ITEM_11.menuItem, MenuItem.ITEM_11.menuText),
+                    InlineKeyboard(MenuItem.ITEM_12.menuItem, MenuItem.ITEM_12.menuText),
+                ),
+                listOf(
+                    InlineKeyboard(MenuItem.ITEM_13.menuItem, MenuItem.ITEM_13.menuText),
+                    InlineKeyboard(MenuItem.ITEM_14.menuItem, MenuItem.ITEM_14.menuText),
+                ),
+                listOf(
+                    InlineKeyboard(MenuItem.ITEM_15.menuItem, MenuItem.ITEM_15.menuText),
+                    InlineKeyboard(MenuItem.ITEM_16.menuItem, MenuItem.ITEM_16.menuText),
+                ),
+                listOf(
+                    InlineKeyboard(MenuItem.ITEM_1.menuItem, MenuItem.ITEM_1.menuText),
+                ),
+            )
+        )
+    )
+    val requestBodyString = json.encodeToString(requestBody)
+    val client = OkHttpClient()
+    val requestBodyJson = requestBodyString.toRequestBody("application/json".toMediaType())
+    val request = Request.Builder()
+        .url(sendMessage)
+        .header("Content-type", "application/json")
+        .post(requestBodyJson)
+        .build()
+    val response = client.newCall(request).execute()
+    return response.body?.string() ?: ""
+}
+
+fun sendDataMenu(json: Json, tokenBot: String, chatId: Long): String {
+    val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
+    val requestBody = SendMessageRequest(
+        chatId = chatId,
+        text = "Просмотр/изменение",
+        replyMarkup = ReplyMarkup(
+            listOf(
+                listOf(
+                    InlineKeyboard(MenuItem.ITEM_1.menuItem, MenuItem.ITEM_1.menuText),
+                ),
+                listOf(
                     InlineKeyboard(MenuItem.ITEM_3.menuItem, MenuItem.ITEM_3.menuText),
                 ),
                 listOf(
                     InlineKeyboard(MenuItem.ITEM_4.menuItem, MenuItem.ITEM_4.menuText),
                 ),
-                listOf(
-                    InlineKeyboard(MenuItem.ITEM_5.menuItem, MenuItem.ITEM_5.menuText),
-                ),
-                listOf(
-                    InlineKeyboard(MenuItem.ITEM_6.menuItem, MenuItem.ITEM_6.menuText),
-                ),
+//                listOf(
+//                    InlineKeyboard(MenuItem.ITEM_5.menuItem, MenuItem.ITEM_5.menuText),
+//                ),
+//                listOf(
+//                    InlineKeyboard(MenuItem.ITEM_6.menuItem, MenuItem.ITEM_6.menuText),
+//                ),
                 listOf(
                     InlineKeyboard(MenuItem.ITEM_7.menuItem, MenuItem.ITEM_7.menuText),
                 ),
@@ -189,8 +260,8 @@ fun sendDataMenu(json: Json, botToken: String, chatId: Long): String {
     return response.body?.string() ?: ""
 }
 
-fun sendDocument(json: Json, botToken: String, chatId: Long, pdfFile: File, caption: String? = null): String {
-    val sendDocumentUrl = "https://api.telegram.org/bot$botToken/sendDocument"
+fun sendDocument(json: Json, tokenBot: String, chatId: Long, pdfFile: File, caption: String? = null): String {
+    val sendDocumentUrl = "https://api.telegram.org/bot$tokenBot/sendDocument"
 
     val requestBody = MultipartBody.Builder()
         .setType(MultipartBody.FORM)
@@ -209,8 +280,8 @@ fun sendDocument(json: Json, botToken: String, chatId: Long, pdfFile: File, capt
     return response.body?.string() ?: ""
 }
 
-fun sendFoodPreferencesMenu(json: Json, botToken: String, chatId: Long): String {
-    val sendMessage = "https://api.telegram.org/bot$botToken/sendMessage"
+fun sendFoodPreferencesMenu(json: Json, tokenBot: String, chatId: Long): String {
+    val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
     val requestBody = SendMessageRequest(
         chatId = chatId,
         text = "Пришлите продукт который желаете добавить в предпочетаемые",
@@ -237,8 +308,8 @@ fun sendFoodPreferencesMenu(json: Json, botToken: String, chatId: Long): String 
     return response.body?.string() ?: ""
 }
 
-fun sendFoodExcludeMenu(json: Json, botToken: String, chatId: Long): String {
-    val sendMessage = "https://api.telegram.org/bot$botToken/sendMessage"
+fun sendFoodExcludeMenu(json: Json, tokenBot: String, chatId: Long): String {
+    val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
     val requestBody = SendMessageRequest(
         chatId = chatId,
         text = "Пришлите продукт для исключения из вашего меню",
@@ -265,12 +336,12 @@ fun sendFoodExcludeMenu(json: Json, botToken: String, chatId: Long): String {
     return response.body?.string() ?: ""
 }
 
-fun botCommand(json: Json, botTokenTg: String, command: List<BotCommand>) {
+fun botCommand(json: Json, tokenBot: String, command: List<BotCommand>) {
     val setMyCommandsRequest = SetMyCommandsRequest(command)
     val requestBody = json.encodeToString(setMyCommandsRequest)
     val client = OkHttpClient()
     val request = Request.Builder()
-        .url("https://api.telegram.org/bot$botTokenTg/setMyCommands")
+        .url("https://api.telegram.org/bot$tokenBot/setMyCommands")
         .post(requestBody.toRequestBody("application/json".toMediaTypeOrNull()))
         .build()
     val response = client.newCall(request).execute()
@@ -285,12 +356,20 @@ fun botCommand(json: Json, botTokenTg: String, command: List<BotCommand>) {
 const val MAIN_MENU = "/start"
 
 enum class MenuItem(val menuItem: String, val menuText: String) {
-    ITEM_1("1", "Рекомендации блюд для меня! (Работаем над улучшением)"),
+    ITEM_1("1", "Сгенерировать блюда для меня"),
     ITEM_2("2", "Просмотр/изменение своих данных"),
-    ITEM_3("3", "Просмотр моих данных"),
-    ITEM_4("4", "Изменение моих данных"),
-    ITEM_5("5", "Просмотр предпочтений в еде"),
-    ITEM_6("6", "Изменить предпочетаемые продукты"),
-    ITEM_7("7", "Просмотр исключённых продуктов"),
-    ITEM_8("8", "Изменить исключаемые продукты"),
+    ITEM_3("3", "Мои данные, просмотр"),
+    ITEM_4("4", "Мои данные, изменение"),
+    ITEM_5("5", "Предпочтения в еде, просмотр"),
+    ITEM_6("6", "Предпочтения в еде, изменить"),
+    ITEM_7("7", "Исключённые продукты, просмотр"),
+    ITEM_8("8", "Исключённые продукты, изменить"),
+    ITEM_9("9", "Список продуктов для покупки"),
+    ITEM_10("10", "Изменить блюда"),
+    ITEM_11("11", "Больше мяса"),
+    ITEM_12("12", "Меньше мяса"),
+    ITEM_13("13", "Больше рыбы"),
+    ITEM_14("14", "Меньше рыбы"),
+    ITEM_15("15", "Больше овощей"),
+    ITEM_16("16", "Меньше овощей"),
 }

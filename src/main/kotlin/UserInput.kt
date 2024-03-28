@@ -4,7 +4,7 @@ class UserInput(var step: Int, var date: String)
 
 fun userInputData(
     json: Json,
-    botTokenTg: String,
+    tokenBotTg: String,
     chatId: Long,
     userInput: UserInput?,
     message: String,
@@ -17,7 +17,7 @@ fun userInputData(
             userInput.step = 2
             sendMessage(
                 json,
-                botTokenTg,
+                tokenBotTg,
                 chatId,
                 "Для более точных рекомендаций блюд, ответьте пожалуйста на несколько вопросов.\n" +
                         "Введите ваш пол (Мужской/Женский)"
@@ -27,27 +27,27 @@ fun userInputData(
         2 -> {
             userInput.date = message
             userInput.step = 3
-            sendMessage(json, botTokenTg, chatId, "Введите ваш год рождения:")
+            sendMessage(json, tokenBotTg, chatId, "Введите ваш год рождения:")
         }
 
         3 -> {
             userInput.date = userInput.date + "|" + message
             userInput.step = 4
-            sendMessage(json, botTokenTg, chatId, "Введите ваш рост:")
+            sendMessage(json, tokenBotTg, chatId, "Введите ваш рост:")
         }
 
         4 -> {
             userInput.date = userInput.date + "|" + message
             userInput.step = 5
-            sendMessage(json, botTokenTg, chatId, "Введите ваш вес:")
+            sendMessage(json, tokenBotTg, chatId, "Введите ваш вес:")
         }
 
         5 -> {
             userInput.date = userInput.date + "|" + message
             userInput.step = 0
             airtable.patchAirtable(userIdAt, mapOf("humanData" to userInput.date))
-            sendMessage(json, botTokenTg, chatId, "Ваши данные записаны!")
-            sendDataMenu(json,botTokenTg,chatId)
+            sendMessage(json, tokenBotTg, chatId, "Ваши данные записаны!")
+            sendMenu(json,tokenBotTg,chatId)
         }
 
         6 -> {
@@ -56,7 +56,7 @@ fun userInputData(
             } else {
                 userInput.date = userInput.date + "|" + message
             }
-            sendFoodPreferencesMenu(json,botTokenTg,chatId)
+            sendFoodPreferencesMenu(json,tokenBotTg,chatId)
         }
 
         7 -> {
@@ -65,7 +65,7 @@ fun userInputData(
             } else {
                 userInput.date = userInput.date + "|" + message
             }
-            sendFoodExcludeMenu(json,botTokenTg,chatId)
+            sendFoodExcludeMenu(json,tokenBotTg,chatId)
         }
 
     }
