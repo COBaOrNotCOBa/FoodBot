@@ -149,11 +149,11 @@ fun sendMenu(json: Json, tokenBot: String, chatId: Long): String {
     return response.body?.string() ?: ""
 }
 
-fun sendGenerationMenu(json: Json, tokenBot: String, chatId: Long): String {
+fun sendGenerationMenu(json: Json, tokenBot: String, chatId: Long, text: String): String {
     val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
     val requestBody = SendMessageRequest(
         chatId = chatId,
-        text = "*Здесь будет список рекомендуемых блюд*",
+        text = text,
         replyMarkup = ReplyMarkup(
             listOf(
                 listOf(

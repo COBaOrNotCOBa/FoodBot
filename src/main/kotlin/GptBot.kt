@@ -1,5 +1,6 @@
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -17,11 +18,121 @@ data class ResponseGptToken(
     val accessToken: String,
 )
 
+@Serializable
+data class GigaChatRequest(
+    val model: String,
+    val messages: List<MessagePromptGpt>,
+    val temperature: Int,
+    val top: Double,
+    val n: Int,
+    val stream: Boolean,
+    val max: Int,
+    val repetitionPenalty: Double,
+    val updateInterval: Int
+)
+
+@Serializable
+data class MessagePromptGpt(
+    val role: String,
+    var content: String,
+)
+
+@Serializable
+data class GigaChatResponse(
+    @SerialName("choices")
+    val choices: List<Choices>,
+    @SerialName("created")
+    val created: Long,
+    @SerialName("model")
+    val model: String,
+    @SerialName("object")
+    val objectModel: String,
+    @SerialName("usage")
+    val usage: Usage,
+)
+
+@Serializable
+data class Choices(
+    @SerialName("message")
+    val message: MessageGptResponse,
+    @SerialName("index")
+    val index: Int,
+    @SerialName("finish_reason")
+    val finishReason: String,
+)
+
+@Serializable
+data class MessageGptResponse(
+    @SerialName("content")
+    val content: String,
+    @SerialName("role")
+    val role : String,
+)
+
+@Serializable
+data class Usage(
+    @SerialName("prompt_tokens")
+    val promptTokens: Int,
+    @SerialName("completion_tokens")
+    val completionTokens: Int,
+    @SerialName("total_tokens")
+    val totalTokens: Int,
+    @SerialName("system_tokens")
+    val systemTokens: Int,
+)
+
 class GptBot(
     private val json: Json,
     private val clientSecretIdGpt: String,
     private val clientSecretGpt: String,
 ) {
+    val gigaChatRequest: GigaChatRequest = GigaChatRequest(
+        model = "GigaChat",
+        messages = listOf(MessagePromptGpt(role = "user", content = "Привет")),
+        temperature = 1,
+        top = 0.1,
+        n = 1,
+        stream = false,
+        max = 512,
+        repetitionPenalty = 1.0,
+        updateInterval = 0,
+    )
+
+    fun sendGigaChatRequestModel(tokenBot: String): String {
+        val client = MyOkHttpClientFactory.createClient()
+        val request = Request.Builder()
+            .url("https://gigachat.devices.sberbank.ru/api/v1/models")
+            .method("GET", null)
+            .addHeader("Accept", "application/json")
+            .addHeader("Authorization", "Bearer $tokenBot")
+            .build()
+        val response = client.newCall(request).execute()
+        return response.body?.string() ?: ""
+    }
+
+    fun getGigaChatResponse(tokenBot: String): GigaChatResponse {
+        val resultGpt = runCatching { sendGigaChatRequest(tokenBot) }.getOrNull() ?: ""
+        println(resultGpt)
+        return json.decodeFromString(resultGpt)
+    }
+
+    private fun sendGigaChatRequest(tokenBot: String): String {
+        val client = MyOkHttpClientFactory.createClient()
+        val mediaType = "application/json".toMediaType()
+        println(gigaChatRequest.messages[0].content)
+        val gigaChatRequestString = json.encodeToString(gigaChatRequest)
+        val body = gigaChatRequestString.toRequestBody(mediaType)
+        val request = Request.Builder()
+            .url("https://gigachat.devices.sberbank.ru/api/v1/chat/completions")
+            .method("POST", body)
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Accept", "application/json")
+            .addHeader("Authorization", "Bearer $tokenBot")
+            .build()
+        val response = client.newCall(request).execute()
+        return response.body?.string() ?: ""
+    }
+
     fun getTokenBotGpt(): ResponseGptToken {
         val resultGpt = runCatching { requestTokenBotGpt() }.getOrNull() ?: ""
         return json.decodeFromString(resultGpt)
@@ -29,26 +140,8 @@ class GptBot(
 
     private fun requestTokenBotGpt(): String {
         val gptUrl = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
-// Создание TrustManager'а для доверенного сертификата
-        val trustManager = object : X509TrustManager {
-            override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
-
-            override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
-
-            override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-        }
-
-// Настройка OkHttpClient с TrustManager'ом
-        val sslContext = SSLContext.getInstance("SSL")
-        sslContext.init(null, arrayOf<TrustManager>(trustManager), SecureRandom())
-
-        val client = OkHttpClient.Builder()
-            .sslSocketFactory(sslContext.socketFactory, trustManager)
-            .hostnameVerifier { _, _ -> true } // Для пропуска проверки hostname
-            .build()
-
+        val client = MyOkHttpClientFactory.createClient()
         val requestBody = "scope=GIGACHAT_API_PERS".toRequestBody("application/x-www-form-urlencoded".toMediaType())
-
         val request = Request.Builder()
             .url(gptUrl)
             .header("Content-Type", "application/x-www-form-urlencoded")
@@ -60,5 +153,25 @@ class GptBot(
 
         val response = client.newCall(request).execute()
         return response.body?.string() ?: ""
+    }
+
+    object MyOkHttpClientFactory {
+        private val trustManager = object : X509TrustManager {
+            override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+            override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+            override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+        }
+        private val sslContext by lazy {
+            SSLContext.getInstance("SSL").apply {
+                init(null, arrayOf<TrustManager>(trustManager), SecureRandom())
+            }
+        }
+
+        fun createClient(): OkHttpClient {
+            return OkHttpClient.Builder()
+                .sslSocketFactory(sslContext.socketFactory, trustManager)
+                .hostnameVerifier { _, _ -> true }
+                .build()
+        }
     }
 }
