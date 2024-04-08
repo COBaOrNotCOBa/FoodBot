@@ -11,6 +11,7 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 import java.security.cert.X509Certificate
+import java.util.concurrent.TimeUnit
 
 @Serializable
 data class ResponseGptToken(
@@ -85,41 +86,42 @@ class GptBot(
     private val json: Json,
     private val clientSecretIdGpt: String,
     private val clientSecretGpt: String,
+    private var lastTokenGenerationTime: Long = 0,
+    var tokenBotGpt: String = "",
 ) {
     val gigaChatRequest: GigaChatRequest = GigaChatRequest(
         model = "GigaChat",
         messages = listOf(MessagePromptGpt(role = "user", content = "Привет")),
         temperature = 1,
-        top = 0.1,
+        top = 0.9,
         n = 1,
         stream = false,
-        max = 512,
+        max = 1024,
         repetitionPenalty = 1.0,
-        updateInterval = 0,
+        updateInterval = 0
     )
 
-    fun sendGigaChatRequestModel(tokenBot: String): String {
+    fun getGigaChatModel(): String {
         val client = MyOkHttpClientFactory.createClient()
         val request = Request.Builder()
             .url("https://gigachat.devices.sberbank.ru/api/v1/models")
             .method("GET", null)
             .addHeader("Accept", "application/json")
-            .addHeader("Authorization", "Bearer $tokenBot")
+            .addHeader("Authorization", "Bearer $tokenBotGpt")
             .build()
         val response = client.newCall(request).execute()
         return response.body?.string() ?: ""
     }
 
-    fun getGigaChatResponse(tokenBot: String): GigaChatResponse {
-        val resultGpt = runCatching { sendGigaChatRequest(tokenBot) }.getOrNull() ?: ""
+    fun getGigaChatResponse(): GigaChatResponse {
+        val resultGpt = runCatching { sendGigaChatRequest() }.getOrNull() ?: ""
         println(resultGpt)
         return json.decodeFromString(resultGpt)
     }
 
-    private fun sendGigaChatRequest(tokenBot: String): String {
+    private fun sendGigaChatRequest(): String {
         val client = MyOkHttpClientFactory.createClient()
         val mediaType = "application/json".toMediaType()
-        println(gigaChatRequest.messages[0].content)
         val gigaChatRequestString = json.encodeToString(gigaChatRequest)
         val body = gigaChatRequestString.toRequestBody(mediaType)
         val request = Request.Builder()
@@ -127,13 +129,23 @@ class GptBot(
             .method("POST", body)
             .addHeader("Content-Type", "application/json")
             .addHeader("Accept", "application/json")
-            .addHeader("Authorization", "Bearer $tokenBot")
+            .addHeader("Authorization", "Bearer $tokenBotGpt")
             .build()
         val response = client.newCall(request).execute()
         return response.body?.string() ?: ""
     }
 
-    fun getTokenBotGpt(): ResponseGptToken {
+    fun getTokenWhenNeeded(): String {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastTokenGenerationTime > 28 * 60 * 1000) { // Проверяем прошло ли 28 минут
+            tokenBotGpt = getTokenBotGpt().accessToken  // Генерируем новый токен
+            lastTokenGenerationTime = currentTime  // Обновляем время последней генерации токена
+        }
+        lastTokenGenerationTime = currentTime // Обновляем время последней генерации токена
+        return tokenBotGpt
+    }
+
+    private fun getTokenBotGpt(): ResponseGptToken {
         val resultGpt = runCatching { requestTokenBotGpt() }.getOrNull() ?: ""
         return json.decodeFromString(resultGpt)
     }
@@ -171,6 +183,9 @@ class GptBot(
             return OkHttpClient.Builder()
                 .sslSocketFactory(sslContext.socketFactory, trustManager)
                 .hostnameVerifier { _, _ -> true }
+                .connectTimeout(10, TimeUnit.SECONDS) // Установка таймаута соединения (примерно 10 секунд)
+                .writeTimeout(10, TimeUnit.SECONDS) // Установка таймаута записи (примерно 10 секунд)
+                .readTimeout(120, TimeUnit.SECONDS) // Установка таймаута чтения (примерно 30 секунд)
                 .build()
         }
     }

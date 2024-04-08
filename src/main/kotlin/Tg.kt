@@ -197,7 +197,7 @@ fun sendChangingMenu(json: Json, tokenBot: String, chatId: Long): String {
                     InlineKeyboard(MenuItem.ITEM_16.menuItem, MenuItem.ITEM_16.menuText),
                 ),
                 listOf(
-                    InlineKeyboard(MenuItem.ITEM_1.menuItem, MenuItem.ITEM_1.menuText),
+                    InlineKeyboard(MenuItem.ITEM_17.menuItem, MenuItem.ITEM_17.menuText),
                 ),
             )
         )
@@ -260,31 +260,11 @@ fun sendDataMenu(json: Json, tokenBot: String, chatId: Long): String {
     return response.body?.string() ?: ""
 }
 
-fun sendDocument(json: Json, tokenBot: String, chatId: Long, pdfFile: File, caption: String? = null): String {
-    val sendDocumentUrl = "https://api.telegram.org/bot$tokenBot/sendDocument"
-
-    val requestBody = MultipartBody.Builder()
-        .setType(MultipartBody.FORM)
-        .addFormDataPart("chat_id", chatId.toString())
-        .addFormDataPart("document", pdfFile.name, pdfFile.asRequestBody("application/pdf".toMediaTypeOrNull()))
-    caption?.let {
-        requestBody.addFormDataPart("caption", it)
-    }
-    val request = Request.Builder()
-        .url(sendDocumentUrl)
-        .post(requestBody.build())
-        .build()
-
-    val client = OkHttpClient()
-    val response = client.newCall(request).execute()
-    return response.body?.string() ?: ""
-}
-
 fun sendFoodPreferencesMenu(json: Json, tokenBot: String, chatId: Long): String {
     val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
     val requestBody = SendMessageRequest(
         chatId = chatId,
-        text = "Пришлите продукт который желаете добавить в предпочетаемые",
+        text = "Пришлите продукты который желаете добавить в предпочетаемые или нажмите на кнопку",
         replyMarkup = ReplyMarkup(
             listOf(
                 listOf(
@@ -312,7 +292,7 @@ fun sendFoodExcludeMenu(json: Json, tokenBot: String, chatId: Long): String {
     val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
     val requestBody = SendMessageRequest(
         chatId = chatId,
-        text = "Пришлите продукт для исключения из вашего меню",
+        text = "Пришлите продукты для исключения из вашего меню или нажмите на кнопку",
         replyMarkup = ReplyMarkup(
             listOf(
                 listOf(
@@ -356,7 +336,7 @@ fun botCommand(json: Json, tokenBot: String, command: List<BotCommand>) {
 const val MAIN_MENU = "/start"
 
 enum class MenuItem(val menuItem: String, val menuText: String) {
-    ITEM_1("1", "Сгенерировать блюда для меня"),
+    ITEM_1("1", "Сгенерировать меню на неделю"),
     ITEM_2("2", "Просмотр/изменение своих данных"),
     ITEM_3("3", "Мои данные, просмотр"),
     ITEM_4("4", "Мои данные, изменение"),
@@ -372,4 +352,5 @@ enum class MenuItem(val menuItem: String, val menuText: String) {
     ITEM_14("14", "Меньше рыбы"),
     ITEM_15("15", "Больше овощей"),
     ITEM_16("16", "Меньше овощей"),
+    ITEM_17("17", "Сгенерировать новое меню на неделю"),
 }
