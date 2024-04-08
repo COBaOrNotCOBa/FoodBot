@@ -1,6 +1,7 @@
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 
-fun main(args: Array<String>) {
+fun main(args: Array<String>) = runBlocking {
 //исходные данные
     val tokenBotTg = args[0]
     val tokenBotAt = args[1]

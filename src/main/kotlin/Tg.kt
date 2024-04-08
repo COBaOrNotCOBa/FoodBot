@@ -5,9 +5,7 @@ import kotlinx.serialization.json.Json
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.File
 
 @Serializable
 data class ResponseTg(
@@ -53,14 +51,6 @@ data class SendMessageRequest(
     val chatId: Long?,
     @SerialName("text")
     val text: String,
-    @SerialName("reply_markup")
-    val replyMarkup: ReplyMarkup? = null,
-)
-
-@Serializable
-data class SendMessageRequestNoText(
-    @SerialName("chat_id")
-    val chatId: Long?,
     @SerialName("reply_markup")
     val replyMarkup: ReplyMarkup? = null,
 )
