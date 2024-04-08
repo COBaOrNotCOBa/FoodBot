@@ -88,7 +88,7 @@ fun handleUpdate(
         (message.startsWith("тест")) -> {
             val sendMessageFromUser = message.substringAfter("тест")
             val textForUser =
-                sendMessageFromUser.let { sendMessageFromUser.substring(it.indexOfFirst { it.isLetter() }) }
+                sendMessageFromUser.let { it -> sendMessageFromUser.substring(it.indexOfFirst { it.isLetter() }) }
             gptBot.gigaChatRequest.messages[0].content = textForUser
             val listOfFood = gptBot.getGigaChatResponse().choices[0].message.content
             sendMessage(json, tokenBotTg, chatId, listOfFood)
@@ -100,14 +100,6 @@ fun handleUpdate(
         }
 //тест
         message.lowercase() == "т" -> {
-//            gptBot.gigaChatRequest.messages[0].content = "Какая высота Кремля?"
-//            val tokenBotGpt = gptBot.getTokenBotGpt().accessToken
-//            val response = gptBot.getGigaChatResponse(tokenBotGpt)
-//            println(response.choices[0].message.content)
-
-//        val dishes = savedUserMenuData[chatId]?.split("\n")  // Разделение текста на строки по блюдам
-//        val uniqueDishes = mutableSetOf<String>()  // Используем множество для уникальных блюд
-
             println(gptBot.getGigaChatModel())
         }
 
