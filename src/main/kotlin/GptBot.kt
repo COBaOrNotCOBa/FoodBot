@@ -1,5 +1,6 @@
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -10,6 +11,7 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 import java.security.cert.X509Certificate
+import java.util.concurrent.TimeUnit
 
 @Serializable
 data class ResponseGptToken(
@@ -17,39 +19,141 @@ data class ResponseGptToken(
     val accessToken: String,
 )
 
+@Serializable
+data class GigaChatRequest(
+    val model: String,
+    val messages: List<MessagePromptGpt>,
+    val temperature: Int,
+    val top: Double,
+    val n: Int,
+    val stream: Boolean,
+    val max: Int,
+    val repetitionPenalty: Double,
+    val updateInterval: Int
+)
+
+@Serializable
+data class MessagePromptGpt(
+    val role: String,
+    var content: String,
+)
+
+@Serializable
+data class GigaChatResponse(
+    @SerialName("choices")
+    val choices: List<Choices>,
+    @SerialName("created")
+    val created: Long,
+    @SerialName("model")
+    val model: String,
+    @SerialName("object")
+    val objectModel: String,
+    @SerialName("usage")
+    val usage: Usage,
+)
+
+@Serializable
+data class Choices(
+    @SerialName("message")
+    val message: MessageGptResponse,
+    @SerialName("index")
+    val index: Int,
+    @SerialName("finish_reason")
+    val finishReason: String,
+)
+
+@Serializable
+data class MessageGptResponse(
+    @SerialName("content")
+    val content: String,
+    @SerialName("role")
+    val role : String,
+)
+
+@Serializable
+data class Usage(
+    @SerialName("prompt_tokens")
+    val promptTokens: Int,
+    @SerialName("completion_tokens")
+    val completionTokens: Int,
+    @SerialName("total_tokens")
+    val totalTokens: Int,
+    @SerialName("system_tokens")
+    val systemTokens: Int,
+)
+
 class GptBot(
     private val json: Json,
     private val clientSecretIdGpt: String,
     private val clientSecretGpt: String,
+    private var lastTokenGenerationTime: Long = 0,
+    var tokenBotGpt: String = "",
 ) {
-    fun getTokenBotGpt(): ResponseGptToken {
+    val gigaChatRequest: GigaChatRequest = GigaChatRequest(
+        model = "GigaChat",
+        messages = listOf(MessagePromptGpt(role = "user", content = "Привет")),
+        temperature = 1,
+        top = 0.9,
+        n = 1,
+        stream = false,
+        max = 1024,
+        repetitionPenalty = 1.0,
+        updateInterval = 0
+    )
+
+    fun getGigaChatModel(): String {
+        val client = MyOkHttpClientFactory.createClient()
+        val request = Request.Builder()
+            .url("https://gigachat.devices.sberbank.ru/api/v1/models")
+            .method("GET", null)
+            .addHeader("Accept", "application/json")
+            .addHeader("Authorization", "Bearer $tokenBotGpt")
+            .build()
+        val response = client.newCall(request).execute()
+        return response.body?.string() ?: ""
+    }
+
+    fun getGigaChatResponse(): GigaChatResponse {
+        val resultGpt = runCatching { sendGigaChatRequest() }.getOrNull() ?: ""
+        println(resultGpt)
+        return json.decodeFromString(resultGpt)
+    }
+
+    private fun sendGigaChatRequest(): String {
+        val client = MyOkHttpClientFactory.createClient()
+        val mediaType = "application/json".toMediaType()
+        val gigaChatRequestString = json.encodeToString(gigaChatRequest)
+        val body = gigaChatRequestString.toRequestBody(mediaType)
+        val request = Request.Builder()
+            .url("https://gigachat.devices.sberbank.ru/api/v1/chat/completions")
+            .method("POST", body)
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Accept", "application/json")
+            .addHeader("Authorization", "Bearer $tokenBotGpt")
+            .build()
+        val response = client.newCall(request).execute()
+        return response.body?.string() ?: ""
+    }
+
+    fun getTokenWhenNeeded(): String {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastTokenGenerationTime > 28 * 60 * 1000) { // Проверяем прошло ли 28 минут
+            tokenBotGpt = getTokenBotGpt().accessToken  // Генерируем новый токен
+            lastTokenGenerationTime = currentTime  // Обновляем время последней генерации токена
+        }
+        lastTokenGenerationTime = currentTime // Обновляем время последней генерации токена
+        return tokenBotGpt
+    }
+
+    private fun getTokenBotGpt(): ResponseGptToken {
         val resultGpt = runCatching { requestTokenBotGpt() }.getOrNull() ?: ""
-//        println(resultGpt)
         return json.decodeFromString(resultGpt)
     }
 
     private fun requestTokenBotGpt(): String {
         val gptUrl = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
-// Создание TrustManager'а для доверенного сертификата
-        val trustManager = object : X509TrustManager {
-            override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
-
-            override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
-
-            override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-        }
-
-// Настройка OkHttpClient с TrustManager'ом
-        val sslContext = SSLContext.getInstance("SSL")
-        sslContext.init(null, arrayOf<TrustManager>(trustManager), SecureRandom())
-
-        val client = OkHttpClient.Builder()
-            .sslSocketFactory(sslContext.socketFactory, trustManager)
-            .hostnameVerifier { _, _ -> true } // Для пропуска проверки hostname
-            .build()
-
+        val client = MyOkHttpClientFactory.createClient()
         val requestBody = "scope=GIGACHAT_API_PERS".toRequestBody("application/x-www-form-urlencoded".toMediaType())
-
         val request = Request.Builder()
             .url(gptUrl)
             .header("Content-Type", "application/x-www-form-urlencoded")
@@ -62,87 +166,27 @@ class GptBot(
         val response = client.newCall(request).execute()
         return response.body?.string() ?: ""
     }
-}
 
-//@Serializable
-//data class ResponseGpt(
-//    @SerialName("result")
-//    val result: Alternatives,
-//)
-//
-//@Serializable
-//data class Alternatives(
-//    @SerialName("alternatives")
-//    val alternatives: List<MessageGpt>,
-//)
-//
-//@Serializable
-//data class MessageGpt(
-//    @SerialName("message")
-//    val message: TextGpt,
-//)
-//
-//@Serializable
-//data class TextGpt(
-//    @SerialName("text")
-//    val text: String,
-//)
-//
-//@Serializable
-//data class RequestGpt(
-//    @SerialName("modelUri")
-//    val modelUri: String = "gpt://b1gidtrrq0kiv3kf31u2/yandexgpt-lite",
-//    @SerialName("completionOptions")
-//    val completionOptions: CompletionOptions,
-//    @SerialName("messages")
-//    val messages: List<Role>,
-//)
-//
-//@Serializable
-//data class CompletionOptions(
-//    @SerialName("stream")
-//    val stream: Boolean = false,
-//    @SerialName("temperature")
-//    val temperature: Double = 0.6,
-//    @SerialName("maxTokens")
-//    val maxTokens: String = "2000",
-//)
-//
-//@Serializable
-//data class Role(
-//    @SerialName("role")
-//    val role: String,
-//    @SerialName("text")
-//    val text: String,
-//)
-//
-//class GptBot(
-//    private val json: Json,
-//    private val botToken: String,
-//    private val requestGpt: String,
-//) {
-//
-//    private val folderId: String = "ajejmadk7ai886qpha8e"
-////    private val promptJson = json.encodeToString(requestGpt)
-//
-//    fun getUpdateGpt(): ResponseGpt {
-//        val resultGpt = runCatching { sendGptRequest() }.getOrNull() ?: ""
-//        println(resultGpt)
-//        return json.decodeFromString(resultGpt)
-//    }
-//
-//    private fun sendGptRequest(): String {
-//        val gptUrl = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
-//        val client = OkHttpClient()
-//        val requestBody = requestGpt.toRequestBody("application/json".toMediaType())
-//        val request = Request.Builder()
-//            .url(gptUrl)
-//            .header("Content-Type", "application/json")
-//            .header("Authorization", "Api-Key $botToken")
-//            .header("x-folder-id", folderId)
-//            .post(requestBody)
-//            .build()
-//        val response = client.newCall(request).execute()
-//        return response.body?.string() ?: ""
-//    }
-//}
+    object MyOkHttpClientFactory {
+        private val trustManager = object : X509TrustManager {
+            override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+            override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+            override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+        }
+        private val sslContext by lazy {
+            SSLContext.getInstance("SSL").apply {
+                init(null, arrayOf<TrustManager>(trustManager), SecureRandom())
+            }
+        }
+
+        fun createClient(): OkHttpClient {
+            return OkHttpClient.Builder()
+                .sslSocketFactory(sslContext.socketFactory, trustManager)
+                .hostnameVerifier { _, _ -> true }
+                .connectTimeout(10, TimeUnit.SECONDS) // Установка таймаута соединения (примерно 10 секунд)
+                .writeTimeout(10, TimeUnit.SECONDS) // Установка таймаута записи (примерно 10 секунд)
+                .readTimeout(120, TimeUnit.SECONDS) // Установка таймаута чтения (примерно 30 секунд)
+                .build()
+        }
+    }
+}

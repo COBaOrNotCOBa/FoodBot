@@ -12,11 +12,13 @@ fun main(args: Array<String>) {
     var lastUpdateId = 0L
     val json = Json { ignoreUnknownKeys = true }
 //Создаем экземпляр Gpt
-    val gptBot = GptBot(json,clientSecretIdGpt, clientSecretGpt)
+    val gptBot = GptBot(json, clientSecretIdGpt, clientSecretGpt)
 //создаем класс таблицы из АТ
     val airtable = Airtable(tokenBotAt, baseIdAt, tableIdAt, json)
 //создаем список пользователей которые вводят данные
     val waitingForInput = mutableMapOf<Long, UserInput>()
+//будем хранить тут список блюд пользователя
+    val savedUserMenuData = mutableMapOf<Long, String>()
 //меню команд в телеграмме
     botCommand(
         json, tokenBotTg, listOf(BotCommand("start", "Глвное меню"))
@@ -35,6 +37,7 @@ fun main(args: Array<String>) {
 //получаем список апдейтов и проверяем не пустые ли они. После поочереди обрабатываем
         val responseTg: ResponseTg = json.decodeFromString(responseStringTg)
         if (responseTg.result.isEmpty()) continue
+        gptBot.tokenBotGpt = gptBot.getTokenWhenNeeded()
         val sortedUpdates = responseTg.result.sortedBy { it.updateId }
         lastUpdateId = sortedUpdates.last().updateId + 1
         sortedUpdates.forEach {
@@ -45,6 +48,7 @@ fun main(args: Array<String>) {
                 airtable,
                 gptBot,
                 waitingForInput,
+                savedUserMenuData,
             )
         }
     }
@@ -58,6 +62,7 @@ fun handleUpdate(
     airtable: Airtable,
     gptBot: GptBot,
     waitingForInput: MutableMap<Long, UserInput>,
+    savedUserMenuData: MutableMap<Long, String>,
 ) {
     val message = updateTg.message?.text ?: ""
     val chatId = updateTg.message?.chat?.id ?: updateTg.callbackQuery?.message?.chat?.id ?: return
@@ -79,13 +84,23 @@ fun handleUpdate(
         waitingForInput[chatId]?.step == 1 -> {
             userInputData(json, tokenBotTg, chatId, waitingForInput[chatId], message, airtable, userIdAt)
         }
+//тест
+        (message.startsWith("тест")) -> {
+            val sendMessageFromUser = message.substringAfter("тест")
+            val textForUser =
+                sendMessageFromUser.let { it -> sendMessageFromUser.substring(it.indexOfFirst { it.isLetter() }) }
+            gptBot.gigaChatRequest.messages[0].content = textForUser
+            val listOfFood = gptBot.getGigaChatResponse().choices[0].message.content
+            sendMessage(json, tokenBotTg, chatId, listOfFood)
+        }
+
 //Стартовое меню
         message.lowercase() == MAIN_MENU || data == MAIN_MENU -> {
             sendMenu(json, tokenBotTg, chatId)
         }
-//Стартовое меню
+//тест
         message.lowercase() == "т" -> {
-            val tokenBotGpt = gptBot.getTokenBotGpt().accessToken
+            println(gptBot.getGigaChatModel())
         }
 
         data == "foodPreferencesSave" -> {
@@ -116,49 +131,51 @@ fun handleUpdate(
 
 //выслать меню на неделю пользователю
         data == MenuItem.ITEM_1.menuItem -> {
-            sendGenerationMenu(json, tokenBotTg, chatId)
-//            try {
-//                val userDataFullRecord = airtable.getUpdateRecord(userIdAt)
-//                val humanData = userDataFullRecord.fields.humanData
-//                val foodPreferences = userDataFullRecord.fields.foodPreferences
-//                val foodExclude = userDataFullRecord.fields.foodExclude
-//                val systemGptText = "Покупка продуктов и приготовление из них еды"
-//                val userGptText =
-//                    "Пришли мне список продуктов и их вес который нужно купить оптом в магазине на неделю" +
-//                            "основываясь на том что я люблю и что исключить, также отправлю тебе свои общие данные. " +
-//                            "Мои данные $humanData. " +
-//                            "Так же приведи примеры блюд с рецептами из этих продуктов на неделю. " +
-//                            "Исключить следущие продукты: $foodExclude. Мои любимые продукты $foodPreferences. " +
-//                            "Не давай точных рекомендаций, подойдут приблизительные варианты"
-//                val prompt = "{\n" +
-//                        "  \"modelUri\": \"gpt://b1gidtrrq0kiv3kf31u2/yandexgpt-lite\",\n" +
-//                        "  \"completionOptions\": {\n" +
-//                        "    \"stream\": false,\n" +
-//                        "    \"temperature\": 0.6,\n" +
-//                        "    \"maxTokens\": \"2000\"\n" +
-//                        "  },\n" +
-//                        "  \"messages\": [\n" +
-//                        "    {\n" +
-//                        "      \"role\": \"system\",\n" +
-//                        "      \"text\": \"$systemGptText\"\n" +
-//                        "    },\n" +
-//                        "    {\n" +
-//                        "      \"role\": \"user\",\n" +
-//                        "      \"text\": \"$userGptText\"\n" +
-//                        "    }\n" +
-//                        "  ]\n" +
-//                        "}"
-//                val gptBot = GptBot(json, tokenBotGpt, prompt)
-//                val gptRequest = gptBot.getUpdateGpt().result.alternatives[0].message.text
-//                sendMessage(json, tokenBotTg, chatId, gptRequest)
-//
-//            } catch (e: Exception) {
-//                e.printStackTrace()
-//            }
+            sendMessage(json, tokenBotTg, chatId, "Немного подождите, подбираем меню")
+            val userDataFullRecord = airtable.getUpdateRecord(userIdAt)
+            val humanDataFull = userDataFullRecord.fields.humanData
+            val humanData = humanDataFull.split("|")
+
+            val foodPreferences = if (userDataFullRecord.fields.foodPreferences != "") {
+                "Продукты которые я предпочитаю: ${userDataFullRecord.fields.foodPreferences.replace("|", ",")}"
+            } else {
+                ""
+            }
+            val foodExclude = if (userDataFullRecord.fields.foodExclude != "") {
+                "Не должно быть блюд с этими продуктами: ${userDataFullRecord.fields.foodExclude.replace("|", ",")}"
+            } else {
+                "Исключений нет"
+            }
+            gptBot.gigaChatRequest.messages[0].content =
+                "Предложи мне список блюд на неделю. Учитывай мои данные и исключения: " +
+                        "пол ${humanData[0]}, " +
+                        "год рождения ${humanData[1]}, " +
+                        "рост ${humanData[2]}, " +
+                        "вес ${humanData[3]}. " +
+                        "$foodPreferences. " +
+                        "$foodExclude."
+            savedUserMenuData[chatId] = gptBot.getGigaChatResponse().choices[0].message.content
+            savedUserMenuData[chatId]?.let { sendGenerationMenu(json, tokenBotTg, chatId, it) }
+        }
+//выслать новое меню на неделю пользователю
+        data == MenuItem.ITEM_17.menuItem -> {
+            sendMessage(json, tokenBotTg, chatId, "Немного подождите, подбираем меню")
+            gptBot.gigaChatRequest.messages[0].content =
+                "Вот список блюд на неделю: ${savedUserMenuData[chatId]}. " +
+                        "Выполни в точности все уточнения и пришли новый список"
+            savedUserMenuData[chatId] = gptBot.getGigaChatResponse().choices[0].message.content
+            savedUserMenuData[chatId]?.let { sendGenerationMenu(json, tokenBotTg, chatId, it) }
         }
 //Список продуктов для покупки сгенерированный ботом
         data == MenuItem.ITEM_9.menuItem -> {
-            sendMessage(json, tokenBotTg, chatId, "Здесь будет список продуктов для покупки")
+            sendMessage(json, tokenBotTg, chatId, "Немного подождите, составляем список...")
+            val content = savedUserMenuData[chatId].toString().replace("\n", " ").trim()
+            gptBot.gigaChatRequest.messages[0].content =
+                "Вот список блюд: $content. " +
+                        "Пришли мне общий список для покупки ингредиентов с указанием их веса. " +
+                        "Выбери сам продукты для этих блюд."
+            val listOfFood = gptBot.getGigaChatResponse().choices[0].message.content
+            sendMessage(json, tokenBotTg, chatId, listOfFood)
         }
 //Меню для изменения блюд
         data == MenuItem.ITEM_10.menuItem -> {
@@ -166,33 +183,41 @@ fun handleUpdate(
         }
 //Больше мяса
         data == MenuItem.ITEM_11.menuItem -> {
-            sendMessage(json,tokenBotTg,chatId,"Теперь будем предлагать больше мясных блюд")
+            sendMessage(json, tokenBotTg, chatId, "Теперь будем предлагать больше мясных блюд")
             sendChangingMenu(json, tokenBotTg, chatId)
+            savedUserMenuData[chatId] = savedUserMenuData[chatId] + " Измени этот список чтобы было больше мясных блюд."
         }
 //Меньше мяса
         data == MenuItem.ITEM_12.menuItem -> {
-            sendMessage(json,tokenBotTg,chatId,"Теперь будем предлагать меньше мясных блюд")
+            sendMessage(json, tokenBotTg, chatId, "Теперь будем предлагать меньше мясных блюд")
             sendChangingMenu(json, tokenBotTg, chatId)
+            savedUserMenuData[chatId] = savedUserMenuData[chatId] + " Измени этот список чтобы было меньше мясных блюд."
         }
 //Больше рыбы
         data == MenuItem.ITEM_13.menuItem -> {
-            sendMessage(json,tokenBotTg,chatId,"Теперь будем предлагать больше рыбных блюд")
+            sendMessage(json, tokenBotTg, chatId, "Теперь будем предлагать больше рыбных блюд")
             sendChangingMenu(json, tokenBotTg, chatId)
+            savedUserMenuData[chatId] = savedUserMenuData[chatId] + " Измени этот список чтобы было больше рыбных блюд."
         }
 //Меньше рыбы
         data == MenuItem.ITEM_14.menuItem -> {
-            sendMessage(json,tokenBotTg,chatId,"Теперь будем предлагать меньше рыбных блюд")
+            sendMessage(json, tokenBotTg, chatId, "Теперь будем предлагать меньше рыбных блюд")
             sendChangingMenu(json, tokenBotTg, chatId)
+            savedUserMenuData[chatId] = savedUserMenuData[chatId] + " Измени этот список чтобы было меньше рыбных блюд."
         }
 //Больше овощей
         data == MenuItem.ITEM_15.menuItem -> {
-            sendMessage(json,tokenBotTg,chatId,"Теперь будем предлагать больше овощных блюд")
+            sendMessage(json, tokenBotTg, chatId, "Теперь будем предлагать больше овощных блюд")
             sendChangingMenu(json, tokenBotTg, chatId)
+            savedUserMenuData[chatId] =
+                savedUserMenuData[chatId] + " Измени этот список чтобы было больше овощьных блюд."
         }
 //Меньше овощей
         data == MenuItem.ITEM_16.menuItem -> {
-            sendMessage(json,tokenBotTg,chatId,"Теперь будем предлагать меньше овощных блюд")
+            sendMessage(json, tokenBotTg, chatId, "Теперь будем предлагать меньше овощных блюд")
             sendChangingMenu(json, tokenBotTg, chatId)
+            savedUserMenuData[chatId] =
+                savedUserMenuData[chatId] + " Измени этот список чтобы было меньше овощьных блюд."
         }
 //Меню с данными пользователя и их редактированием
         data == MenuItem.ITEM_2.menuItem -> {
