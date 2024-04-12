@@ -6,7 +6,6 @@ import kotlin.coroutines.CoroutineContext
 val coroutineContext: CoroutineContext = Executors.newFixedThreadPool(4).asCoroutineDispatcher()
 val coroutineScope = CoroutineScope(coroutineContext)
 
-@OptIn(DelicateCoroutinesApi::class)
 fun main(args: Array<String>) {
 //исходные данные
     val tokenBotTg = args[0]
