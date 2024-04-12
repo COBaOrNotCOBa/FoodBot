@@ -68,7 +68,6 @@ class Airtable(
 
     fun getUpdateRecord(recordId: String): Records {
         val resultRecord = runCatching { getUserData(recordId) }.getOrNull() ?: ""
-        println(resultRecord)
         return json.decodeFromString(resultRecord)
     }
 

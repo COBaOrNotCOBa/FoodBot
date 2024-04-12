@@ -1,3 +1,4 @@
+import kotlinx.coroutines.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -67,7 +68,7 @@ data class MessageGptResponse(
     @SerialName("content")
     val content: String,
     @SerialName("role")
-    val role : String,
+    val role: String,
 )
 
 @Serializable
@@ -135,6 +136,7 @@ class GptBot(
         return response.body?.string() ?: ""
     }
 
+    //отправляем запрос на токен если нужен
     fun getTokenWhenNeeded(): String {
         val currentTime = System.currentTimeMillis()
         if (currentTime - lastTokenGenerationTime > 28 * 60 * 1000) { // Проверяем прошло ли 28 минут
@@ -145,11 +147,13 @@ class GptBot(
         return tokenBotGpt
     }
 
+    //вынимаем сам токен из ответа
     private fun getTokenBotGpt(): ResponseGptToken {
         val resultGpt = runCatching { requestTokenBotGpt() }.getOrNull() ?: ""
         return json.decodeFromString(resultGpt)
     }
 
+    //запрос на токен
     private fun requestTokenBotGpt(): String {
         val gptUrl = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
         val client = MyOkHttpClientFactory.createClient()
@@ -183,9 +187,9 @@ class GptBot(
             return OkHttpClient.Builder()
                 .sslSocketFactory(sslContext.socketFactory, trustManager)
                 .hostnameVerifier { _, _ -> true }
-                .connectTimeout(10, TimeUnit.SECONDS) // Установка таймаута соединения (примерно 10 секунд)
-                .writeTimeout(10, TimeUnit.SECONDS) // Установка таймаута записи (примерно 10 секунд)
-                .readTimeout(120, TimeUnit.SECONDS) // Установка таймаута чтения (примерно 30 секунд)
+                .connectTimeout(20, TimeUnit.SECONDS) // Установка таймаута соединения (примерно 20 секунд)
+                .writeTimeout(20, TimeUnit.SECONDS) // Установка таймаута записи (примерно 20 секунд)
+                .readTimeout(120, TimeUnit.SECONDS) // Установка таймаута чтения (примерно 120 секунд)
                 .build()
         }
     }
