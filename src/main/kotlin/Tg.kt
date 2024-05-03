@@ -1,7 +1,3 @@
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -87,249 +83,263 @@ data class BotCommand(
     val description: String
 )
 
-fun getUpdates(tokenBot: String, updateId: Long): String {
-    val urlGetUpdates = "https://api.telegram.org/bot$tokenBot/getUpdates?offset=$updateId"
-    val client = OkHttpClient()
-    val request = Request.Builder()
-        .url(urlGetUpdates)
-        .build()
-    val response = client.newCall(request).execute()
-    return response.body?.string() ?: ""
-}
+class Tg(
+    private val tokenBot: String,
+    private val json : Json,
+    var chatId: Long = 0L,
+    var message: String ="",
+    var data: String = "",
+) {
 
-fun sendMessage(json: Json, tokenBot: String, chatId: Long, message: String): String {
-    val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
-    val requestBody = SendMessageRequest(
-        chatId = chatId,
-        text = message,
-    )
-    val requestBodyString = json.encodeToString(requestBody)
-    val client = OkHttpClient()
-    val requestBodyJson = requestBodyString.toRequestBody("application/json".toMediaType())
-    val request = Request.Builder()
-        .url(sendMessage)
-        .header("Content-type", "application/json")
-        .post(requestBodyJson)
-        .build()
-    val response = client.newCall(request).execute()
-    return response.body?.string() ?: ""
-}
+    fun getUpdates(updateId: Long): String {
+        val urlGetUpdates = "https://api.telegram.org/bot$tokenBot/getUpdates?offset=$updateId"
+        val client = OkHttpClient()
+        val request = Request.Builder()
+            .url(urlGetUpdates)
+            .build()
+        val response = client.newCall(request).execute()
+        return response.body?.string() ?: ""
+    }
 
-fun sendMenu(json: Json, tokenBot: String, chatId: Long): String {
-    val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
-    val requestBody = SendMessageRequest(
-        chatId = chatId,
-        text = "Доброго времени суток!",
-        replyMarkup = ReplyMarkup(
-            listOf(
+    fun sendMessage(text:String): String {
+        val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
+        val requestBody = SendMessageRequest(
+            chatId = chatId,
+            text = text,
+        )
+        val requestBodyString = json.encodeToString(requestBody)
+        val client = OkHttpClient()
+        val requestBodyJson = requestBodyString.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url(sendMessage)
+            .header("Content-type", "application/json")
+            .post(requestBodyJson)
+            .build()
+        val response = client.newCall(request).execute()
+        return response.body?.string() ?: ""
+    }
+
+    fun sendMenu(): String {
+        val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
+        val requestBody = SendMessageRequest(
+            chatId = chatId,
+            text = "Доброго времени суток!",
+            replyMarkup = ReplyMarkup(
                 listOf(
-                    InlineKeyboard(MenuItem.ITEM_1.menuItem, MenuItem.ITEM_1.menuText),
-                ),
-                listOf(
-                    InlineKeyboard(MenuItem.ITEM_2.menuItem, MenuItem.ITEM_2.menuText),
-                ),
+                    listOf(
+                        InlineKeyboard(MenuItem.ITEM_1.menuItem, MenuItem.ITEM_1.menuText),
+                    ),
+                    listOf(
+                        InlineKeyboard(MenuItem.ITEM_18.menuItem, MenuItem.ITEM_18.menuText),
+                        InlineKeyboard(MenuItem.ITEM_19.menuItem, MenuItem.ITEM_19.menuText),
+                    ),
+                    listOf(
+                        InlineKeyboard(MenuItem.ITEM_2.menuItem, MenuItem.ITEM_2.menuText),
+                    ),
+                )
             )
         )
-    )
-    val requestBodyString = json.encodeToString(requestBody)
-    val client = OkHttpClient()
-    val requestBodyJson = requestBodyString.toRequestBody("application/json".toMediaType())
-    val request = Request.Builder()
-        .url(sendMessage)
-        .header("Content-type", "application/json")
-        .post(requestBodyJson)
-        .build()
-    val response = client.newCall(request).execute()
-    return response.body?.string() ?: ""
-}
+        val requestBodyString = json.encodeToString(requestBody)
+        val client = OkHttpClient()
+        val requestBodyJson = requestBodyString.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url(sendMessage)
+            .header("Content-type", "application/json")
+            .post(requestBodyJson)
+            .build()
+        val response = client.newCall(request).execute()
+        return response.body?.string() ?: ""
+    }
 
-fun sendGenerationMenu(json: Json, tokenBot: String, chatId: Long, text: String): String {
-    val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
-    val requestBody = SendMessageRequest(
-        chatId = chatId,
-        text = text,
-        replyMarkup = ReplyMarkup(
-            listOf(
+    fun sendGenerationMenu(text: String): String {
+        val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
+        val requestBody = SendMessageRequest(
+            chatId = chatId,
+            text = text,
+            replyMarkup = ReplyMarkup(
                 listOf(
-                    InlineKeyboard(MenuItem.ITEM_9.menuItem, MenuItem.ITEM_9.menuText),
-                ),
-                listOf(
-                    InlineKeyboard(MenuItem.ITEM_10.menuItem, MenuItem.ITEM_10.menuText),
-                ),
+                    listOf(
+                        InlineKeyboard(MenuItem.ITEM_9.menuItem, MenuItem.ITEM_9.menuText),
+                    ),
+                    listOf(
+                        InlineKeyboard(MenuItem.ITEM_10.menuItem, MenuItem.ITEM_10.menuText),
+                    ),
+                    listOf(
+                        InlineKeyboard(MenuItem.ITEM_0.menuItem, MenuItem.ITEM_0.menuText),
+                    ),
+                )
             )
         )
-    )
-    val requestBodyString = json.encodeToString(requestBody)
-    val client = OkHttpClient()
-    val requestBodyJson = requestBodyString.toRequestBody("application/json".toMediaType())
-    val request = Request.Builder()
-        .url(sendMessage)
-        .header("Content-type", "application/json")
-        .post(requestBodyJson)
-        .build()
-    val response = client.newCall(request).execute()
-    return response.body?.string() ?: ""
-}
+        val requestBodyString = json.encodeToString(requestBody)
+        val client = OkHttpClient()
+        val requestBodyJson = requestBodyString.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url(sendMessage)
+            .header("Content-type", "application/json")
+            .post(requestBodyJson)
+            .build()
+        val response = client.newCall(request).execute()
+        return response.body?.string() ?: ""
+    }
 
-fun sendChangingMenu(json: Json, tokenBot: String, chatId: Long): String {
-    val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
-    val requestBody = SendMessageRequest(
-        chatId = chatId,
-        text = "Нажмите на нужную кнопку",
-        replyMarkup = ReplyMarkup(
-            listOf(
+    fun sendChangingMenu(): String {
+        val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
+        val requestBody = SendMessageRequest(
+            chatId = chatId,
+            text = "Нажмите на нужную кнопку",
+            replyMarkup = ReplyMarkup(
                 listOf(
-                    InlineKeyboard(MenuItem.ITEM_11.menuItem, MenuItem.ITEM_11.menuText),
-                    InlineKeyboard(MenuItem.ITEM_12.menuItem, MenuItem.ITEM_12.menuText),
-                ),
-                listOf(
-                    InlineKeyboard(MenuItem.ITEM_13.menuItem, MenuItem.ITEM_13.menuText),
-                    InlineKeyboard(MenuItem.ITEM_14.menuItem, MenuItem.ITEM_14.menuText),
-                ),
-                listOf(
-                    InlineKeyboard(MenuItem.ITEM_15.menuItem, MenuItem.ITEM_15.menuText),
-                    InlineKeyboard(MenuItem.ITEM_16.menuItem, MenuItem.ITEM_16.menuText),
-                ),
-                listOf(
-                    InlineKeyboard(MenuItem.ITEM_17.menuItem, MenuItem.ITEM_17.menuText),
-                ),
+                    listOf(
+                        InlineKeyboard(MenuItem.ITEM_11.menuItem, MenuItem.ITEM_11.menuText),
+                        InlineKeyboard(MenuItem.ITEM_12.menuItem, MenuItem.ITEM_12.menuText),
+                    ),
+                    listOf(
+                        InlineKeyboard(MenuItem.ITEM_13.menuItem, MenuItem.ITEM_13.menuText),
+                        InlineKeyboard(MenuItem.ITEM_14.menuItem, MenuItem.ITEM_14.menuText),
+                    ),
+                    listOf(
+                        InlineKeyboard(MenuItem.ITEM_15.menuItem, MenuItem.ITEM_15.menuText),
+                        InlineKeyboard(MenuItem.ITEM_16.menuItem, MenuItem.ITEM_16.menuText),
+                    ),
+                    listOf(
+                        InlineKeyboard(MenuItem.ITEM_17.menuItem, MenuItem.ITEM_17.menuText),
+                    ),
+                )
             )
         )
-    )
-    val requestBodyString = json.encodeToString(requestBody)
-    val client = OkHttpClient()
-    val requestBodyJson = requestBodyString.toRequestBody("application/json".toMediaType())
-    val request = Request.Builder()
-        .url(sendMessage)
-        .header("Content-type", "application/json")
-        .post(requestBodyJson)
-        .build()
-    val response = client.newCall(request).execute()
-    return response.body?.string() ?: ""
-}
+        val requestBodyString = json.encodeToString(requestBody)
+        val client = OkHttpClient()
+        val requestBodyJson = requestBodyString.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url(sendMessage)
+            .header("Content-type", "application/json")
+            .post(requestBodyJson)
+            .build()
+        val response = client.newCall(request).execute()
+        return response.body?.string() ?: ""
+    }
 
-fun sendDataMenu(json: Json, tokenBot: String, chatId: Long): String {
-    val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
-    val requestBody = SendMessageRequest(
-        chatId = chatId,
-        text = "Просмотр/изменение",
-        replyMarkup = ReplyMarkup(
-            listOf(
+    fun sendDataMenu(): String {
+        val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
+        val requestBody = SendMessageRequest(
+            chatId = chatId,
+            text = "Просмотр/изменение",
+            replyMarkup = ReplyMarkup(
                 listOf(
-                    InlineKeyboard(MenuItem.ITEM_1.menuItem, MenuItem.ITEM_1.menuText),
-                ),
-                listOf(
-                    InlineKeyboard(MenuItem.ITEM_3.menuItem, MenuItem.ITEM_3.menuText),
-                ),
-                listOf(
-                    InlineKeyboard(MenuItem.ITEM_4.menuItem, MenuItem.ITEM_4.menuText),
-                ),
+                    listOf(
+                        InlineKeyboard(MenuItem.ITEM_1.menuItem, MenuItem.ITEM_1.menuText),
+                    ),
+                    listOf(
+                        InlineKeyboard(MenuItem.ITEM_3.menuItem, MenuItem.ITEM_3.menuText),
+                    ),
+                    listOf(
+                        InlineKeyboard(MenuItem.ITEM_4.menuItem, MenuItem.ITEM_4.menuText),
+                    ),
 //                listOf(
 //                    InlineKeyboard(MenuItem.ITEM_5.menuItem, MenuItem.ITEM_5.menuText),
 //                ),
 //                listOf(
 //                    InlineKeyboard(MenuItem.ITEM_6.menuItem, MenuItem.ITEM_6.menuText),
 //                ),
-                listOf(
-                    InlineKeyboard(MenuItem.ITEM_7.menuItem, MenuItem.ITEM_7.menuText),
-                ),
-                listOf(
-                    InlineKeyboard(MenuItem.ITEM_8.menuItem, MenuItem.ITEM_8.menuText),
-                ),
-                listOf(
-                    InlineKeyboard(MAIN_MENU, "В главное меню"),
-                ),
+                    listOf(
+                        InlineKeyboard(MenuItem.ITEM_7.menuItem, MenuItem.ITEM_7.menuText),
+                    ),
+                    listOf(
+                        InlineKeyboard(MenuItem.ITEM_8.menuItem, MenuItem.ITEM_8.menuText),
+                    ),
+                    listOf(
+                        InlineKeyboard(MenuItem.ITEM_0.menuItem, MenuItem.ITEM_0.menuText),
+                    ),
+                )
             )
         )
-    )
-    val requestBodyString = json.encodeToString(requestBody)
-    val client = OkHttpClient()
-    val requestBodyJson = requestBodyString.toRequestBody("application/json".toMediaType())
-    val request = Request.Builder()
-        .url(sendMessage)
-        .header("Content-type", "application/json")
-        .post(requestBodyJson)
-        .build()
-    val response = client.newCall(request).execute()
-    return response.body?.string() ?: ""
-}
-
-fun sendFoodPreferencesMenu(json: Json, tokenBot: String, chatId: Long): String {
-    val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
-    val requestBody = SendMessageRequest(
-        chatId = chatId,
-        text = "Пришлите продукты который желаете добавить в предпочетаемые или нажмите на кнопку",
-        replyMarkup = ReplyMarkup(
-            listOf(
-                listOf(
-                    InlineKeyboard("foodPreferencesSave", "Занести в базу ваши предпочтения"),
-                ),
-                listOf(
-                    InlineKeyboard("stopUserInput", "Отмена записи"),
-                ),
-            )
-        )
-    )
-    val requestBodyString = json.encodeToString(requestBody)
-    val client = OkHttpClient()
-    val requestBodyJson = requestBodyString.toRequestBody("application/json".toMediaType())
-    val request = Request.Builder()
-        .url(sendMessage)
-        .header("Content-type", "application/json")
-        .post(requestBodyJson)
-        .build()
-    val response = client.newCall(request).execute()
-    return response.body?.string() ?: ""
-}
-
-fun sendFoodExcludeMenu(json: Json, tokenBot: String, chatId: Long): String {
-    val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
-    val requestBody = SendMessageRequest(
-        chatId = chatId,
-        text = "Пришлите продукты для исключения из вашего меню или нажмите на кнопку",
-        replyMarkup = ReplyMarkup(
-            listOf(
-                listOf(
-                    InlineKeyboard("foodExcludeSave", "Занести в базу ваши исключения"),
-                ),
-                listOf(
-                    InlineKeyboard("stopUserInput", "Отмена записи"),
-                ),
-            )
-        )
-    )
-    val requestBodyString = json.encodeToString(requestBody)
-    val client = OkHttpClient()
-    val requestBodyJson = requestBodyString.toRequestBody("application/json".toMediaType())
-    val request = Request.Builder()
-        .url(sendMessage)
-        .header("Content-type", "application/json")
-        .post(requestBodyJson)
-        .build()
-    val response = client.newCall(request).execute()
-    return response.body?.string() ?: ""
-}
-
-fun botCommand(json: Json, tokenBot: String, command: List<BotCommand>) {
-    val setMyCommandsRequest = SetMyCommandsRequest(command)
-    val requestBody = json.encodeToString(setMyCommandsRequest)
-    val client = OkHttpClient()
-    val request = Request.Builder()
-        .url("https://api.telegram.org/bot$tokenBot/setMyCommands")
-        .post(requestBody.toRequestBody("application/json".toMediaTypeOrNull()))
-        .build()
-    val response = client.newCall(request).execute()
-    val responseBody = response.body?.string()
-    println(responseBody)
-    responseBody?.let {
-        ""
+        val requestBodyString = json.encodeToString(requestBody)
+        val client = OkHttpClient()
+        val requestBodyJson = requestBodyString.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url(sendMessage)
+            .header("Content-type", "application/json")
+            .post(requestBodyJson)
+            .build()
+        val response = client.newCall(request).execute()
+        return response.body?.string() ?: ""
     }
-    response.close()
+
+    fun sendFoodPreferencesMenu(): String {
+        val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
+        val requestBody = SendMessageRequest(
+            chatId = chatId,
+            text = "Пришлите продукты который желаете добавить в предпочетаемые или нажмите на кнопку",
+            replyMarkup = ReplyMarkup(
+                listOf(
+                    listOf(
+                        InlineKeyboard("foodPreferencesSave", "Занести в базу ваши предпочтения"),
+                    ),
+                    listOf(
+                        InlineKeyboard("stopUserInput", "Отмена записи"),
+                    ),
+                )
+            )
+        )
+        val requestBodyString = json.encodeToString(requestBody)
+        val client = OkHttpClient()
+        val requestBodyJson = requestBodyString.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url(sendMessage)
+            .header("Content-type", "application/json")
+            .post(requestBodyJson)
+            .build()
+        val response = client.newCall(request).execute()
+        return response.body?.string() ?: ""
+    }
+
+    fun sendFoodExcludeMenu(): String {
+        val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
+        val requestBody = SendMessageRequest(
+            chatId = chatId,
+            text = "Пришлите продукты для исключения из вашего меню или нажмите на кнопку",
+            replyMarkup = ReplyMarkup(
+                listOf(
+                    listOf(
+                        InlineKeyboard("foodExcludeSave", "Занести в базу ваши исключения"),
+                    ),
+                    listOf(
+                        InlineKeyboard("stopUserInput", "Отмена записи"),
+                    ),
+                )
+            )
+        )
+        val requestBodyString = json.encodeToString(requestBody)
+        val client = OkHttpClient()
+        val requestBodyJson = requestBodyString.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url(sendMessage)
+            .header("Content-type", "application/json")
+            .post(requestBodyJson)
+            .build()
+        val response = client.newCall(request).execute()
+        return response.body?.string() ?: ""
+    }
+
+    fun botCommand(command: List<BotCommand>) {
+        val setMyCommandsRequest = SetMyCommandsRequest(command)
+        val requestBody = json.encodeToString(setMyCommandsRequest)
+        val client = OkHttpClient()
+        val request = Request.Builder()
+            .url("https://api.telegram.org/bot$tokenBot/setMyCommands")
+            .post(requestBody.toRequestBody("application/json".toMediaTypeOrNull()))
+            .build()
+        val response = client.newCall(request).execute()
+        val responseBody = response.body?.string()
+        println(responseBody)
+        responseBody?.let {
+            ""
+        }
+        response.close()
+    }
 }
-
-const val MAIN_MENU = "/start"
-
 enum class MenuItem(val menuItem: String, val menuText: String) {
+    ITEM_0("/start", "Главное меню"),
     ITEM_1("1", "Сгенерировать меню на неделю"),
     ITEM_2("2", "Просмотр/изменение своих данных"),
     ITEM_3("3", "Мои данные, просмотр"),
@@ -347,4 +357,6 @@ enum class MenuItem(val menuItem: String, val menuText: String) {
     ITEM_15("15", "Больше овощей"),
     ITEM_16("16", "Меньше овощей"),
     ITEM_17("17", "Сгенерировать новое меню на неделю"),
+    ITEM_18("18", "Мое меню на неделю"),
+    ITEM_19("19", "Список для покупки"),
 }

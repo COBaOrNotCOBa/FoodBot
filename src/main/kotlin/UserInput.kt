@@ -1,71 +1,62 @@
-import kotlinx.serialization.json.Json
-
-class UserInput(var step: Int, var date: String)
+class UserInput(var step: Int, var data: String)
 
 fun userInputData(
-    json: Json,
-    tokenBotTg: String,
-    chatId: Long,
+    tg: Tg,
     userInput: UserInput?,
-    message: String,
     airtable: Airtable,
-    userIdAt: String,
 ): Int {
     userInput ?: return 0
     when (userInput.step) {
         1 -> {
             userInput.step = 2
-            sendMessage(
-                json,
-                tokenBotTg,
-                chatId,
+            tg.sendMessage(
                 "Для более точных рекомендаций блюд, ответьте пожалуйста на несколько вопросов.\n" +
                         "Введите ваш пол (Мужской/Женский)"
             )
         }
 
         2 -> {
-            userInput.date = message
+            userInput.data = tg.message
             userInput.step = 3
-            sendMessage(json, tokenBotTg, chatId, "Введите ваш год рождения:")
+            tg.sendMessage("Введите ваш год рождения:")
         }
 
         3 -> {
-            userInput.date = userInput.date + "|" + message
+            userInput.data = userInput.data + "|" + tg.message
             userInput.step = 4
-            sendMessage(json, tokenBotTg, chatId, "Введите ваш рост:")
+            tg.sendMessage("Введите ваш рост:")
         }
 
         4 -> {
-            userInput.date = userInput.date + "|" + message
+            userInput.data = userInput.data + "|" + tg.message
             userInput.step = 5
-            sendMessage(json, tokenBotTg, chatId, "Введите ваш вес:")
+            tg.sendMessage("Введите ваш вес:")
         }
 
         5 -> {
-            userInput.date = userInput.date + "|" + message
+            userInput.data = userInput.data + "|" + tg.message
             userInput.step = 0
-            airtable.patchAirtable(userIdAt, mapOf("humanData" to userInput.date))
-            sendMessage(json, tokenBotTg, chatId, "Ваши данные записаны!")
-            sendMenu(json,tokenBotTg,chatId)
+            airtable.patchAirtable("humanData", userInput.data)
+            tg.sendMessage("Ваши данные записаны!")
+            tg.sendMenu()
         }
 
         6 -> {
-            if (userInput.date == "") {
-                userInput.date = message
+            if (userInput.data == "") {
+                userInput.data = tg.message
             } else {
-                userInput.date = userInput.date + "|" + message
+                userInput.data = userInput.data + "|" + tg.message
             }
-            sendFoodPreferencesMenu(json,tokenBotTg,chatId)
+            tg.sendFoodPreferencesMenu()
         }
 
         7 -> {
-            if (userInput.date == "") {
-                userInput.date = message
+            if (userInput.data == "") {
+                userInput.data = tg.message
             } else {
-                userInput.date = userInput.date + "|" + message
+                userInput.data = userInput.data + "|" + tg.message
             }
-            sendFoodExcludeMenu(json,tokenBotTg,chatId)
+            tg.sendFoodExcludeMenu()
         }
 
     }
