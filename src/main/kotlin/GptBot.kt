@@ -80,7 +80,7 @@ data class Usage(
     @SerialName("total_tokens")
     val totalTokens: Int,
     @SerialName("system_tokens")
-    val systemTokens: Int,
+    val systemTokens: Int? = null,
 )
 
 class GptBot(
@@ -94,10 +94,10 @@ class GptBot(
         model = "GigaChat",
         messages = listOf(MessagePromptGpt(role = "user", content = "Привет")),
         temperature = 1,
-        top = 0.9,
+        top = 0.1,
         n = 1,
         stream = false,
-        max = 1024,
+        max = 512,
         repetitionPenalty = 1.0,
         updateInterval = 0
     )
@@ -121,19 +121,24 @@ class GptBot(
     }
 
     private fun sendGigaChatRequest(): String {
-        val client = MyOkHttpClientFactory.createClient()
-        val mediaType = "application/json".toMediaType()
-        val gigaChatRequestString = json.encodeToString(gigaChatRequest)
-        val body = gigaChatRequestString.toRequestBody(mediaType)
-        val request = Request.Builder()
-            .url("https://gigachat.devices.sberbank.ru/api/v1/chat/completions")
-            .method("POST", body)
-            .addHeader("Content-Type", "application/json")
-            .addHeader("Accept", "application/json")
-            .addHeader("Authorization", "Bearer $tokenBotGpt")
-            .build()
-        val response = client.newCall(request).execute()
-        return response.body?.string() ?: ""
+        try {
+            val client = MyOkHttpClientFactory.createClient()
+            val mediaType = "application/json".toMediaType()
+            val gigaChatRequestString = json.encodeToString(gigaChatRequest)
+            val body = gigaChatRequestString.toRequestBody(mediaType)
+            val request = Request.Builder()
+                .url("https://gigachat.devices.sberbank.ru/api/v1/chat/completions")
+                .method("POST", body)
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Accept", "application/json")
+                .addHeader("Authorization", "Bearer $tokenBotGpt")
+                .build()
+            val response = client.newCall(request).execute()
+            return response.body?.string() ?: ""
+        } catch (e: Exception) {
+            println(e)
+            return ""
+        }
     }
 
     //отправляем запрос на токен если нужен

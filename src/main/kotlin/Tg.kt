@@ -85,10 +85,7 @@ data class BotCommand(
 
 class Tg(
     private val tokenBot: String,
-    private val json : Json,
-    var chatId: Long = 0L,
-    var message: String ="",
-    var data: String = "",
+    private val json: Json,
 ) {
 
     fun getUpdates(updateId: Long): String {
@@ -101,7 +98,7 @@ class Tg(
         return response.body?.string() ?: ""
     }
 
-    fun sendMessage(text:String): String {
+    fun sendMessage(chatId: Long, text: String): String {
         val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
         val requestBody = SendMessageRequest(
             chatId = chatId,
@@ -119,7 +116,7 @@ class Tg(
         return response.body?.string() ?: ""
     }
 
-    fun sendMenu(): String {
+    fun sendMenu(chatId: Long): String {
         val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
         val requestBody = SendMessageRequest(
             chatId = chatId,
@@ -151,7 +148,7 @@ class Tg(
         return response.body?.string() ?: ""
     }
 
-    fun sendGenerationMenu(text: String): String {
+    fun sendGenerationMenu(chatId: Long, text: String): String {
         val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
         val requestBody = SendMessageRequest(
             chatId = chatId,
@@ -182,7 +179,7 @@ class Tg(
         return response.body?.string() ?: ""
     }
 
-    fun sendChangingMenu(): String {
+    fun sendChangingMenu(chatId: Long): String {
         val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
         val requestBody = SendMessageRequest(
             chatId = chatId,
@@ -219,7 +216,7 @@ class Tg(
         return response.body?.string() ?: ""
     }
 
-    fun sendDataMenu(): String {
+    fun sendDataMenu(chatId: Long): String {
         val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
         val requestBody = SendMessageRequest(
             chatId = chatId,
@@ -265,7 +262,7 @@ class Tg(
         return response.body?.string() ?: ""
     }
 
-    fun sendFoodPreferencesMenu(): String {
+    fun sendFoodPreferencesMenu(chatId: Long): String {
         val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
         val requestBody = SendMessageRequest(
             chatId = chatId,
@@ -293,7 +290,7 @@ class Tg(
         return response.body?.string() ?: ""
     }
 
-    fun sendFoodExcludeMenu(): String {
+    fun sendFoodExcludeMenu(chatId: Long): String {
         val sendMessage = "https://api.telegram.org/bot$tokenBot/sendMessage"
         val requestBody = SendMessageRequest(
             chatId = chatId,
@@ -338,6 +335,7 @@ class Tg(
         response.close()
     }
 }
+
 enum class MenuItem(val menuItem: String, val menuText: String) {
     ITEM_0("/start", "Главное меню"),
     ITEM_1("1", "Сгенерировать меню на неделю"),
