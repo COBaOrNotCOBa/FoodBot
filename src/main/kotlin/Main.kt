@@ -11,15 +11,16 @@ fun main(args: Array<String>) {
     val tokenBotAt = args[1]
     val baseIdAt = args[2]
     val tableIdAt = args[3]
-    val clientSecretIdGpt = args[4]
-    val clientSecretGpt = args[5]
+//    val clientSecretIdGpt = args[4]
+//    val clientSecretGpt = args[5]
 
     var lastUpdateId = 0L
     val json = Json { ignoreUnknownKeys = true }
 //создаем класс Tg для телеграмм
     val tg = Tg(args[0], json)
 //Создаем экземпляр для GPT бота
-    val gptBot = GptBot(json, clientSecretIdGpt, clientSecretGpt)
+//    val gptBot = GptBot(json, clientSecretIdGpt, clientSecretGpt)
+    val openAiBot = OpenAIBot(json, args[6])
 //создаем класс таблицы для базы данных АТ
     val airtable = Airtable(tokenBotAt, baseIdAt, tableIdAt, json)
 //создаем список пользователей которые вводят данные последовательно
@@ -49,7 +50,7 @@ fun main(args: Array<String>) {
                 val responseTg: ResponseTg = json.decodeFromString(responseStringTg)
                 if (responseTg.result.isEmpty()) continue
 //проверяем токен gptbota
-                gptBot.tokenBotGpt = gptBot.getTokenWhenNeeded()
+//                gptBot.tokenBotGpt = gptBot.getTokenWhenNeeded()
 //сортируем входящие запросы
                 val sortedUpdates = responseTg.result.sortedBy { it.updateId }
                 lastUpdateId = sortedUpdates.last().updateId + 1
@@ -60,17 +61,17 @@ fun main(args: Array<String>) {
                                 it,
                                 tg,
                                 airtable,
-                                gptBot,
+                                openAiBot,
                                 waitingForInput,
                                 savedUserMenuData,
                             )
                         }
                     } catch (e: Exception) {
-                        println("Ошибка $e")
+                        println("Ошибка handleUpdate: $e")
                     }
                 }
             } catch (e: Exception) {
-                println("Ошибка $e")
+                println("Ошибка checkUpdate: $e")
             }
         }
     }
@@ -81,14 +82,13 @@ fun handleUpdate(
     updateTg: Update,
     tg: Tg,
     airtable: Airtable,
-    gptBot: GptBot,
+    openAiBot: OpenAIBot,
     waitingForInput: MutableMap<Long, UserInput>,
     savedUserMenuData: MutableMap<Long, String>,
 ) {
     val message = updateTg.message?.text ?: ""
     val chatId = updateTg.message?.chat?.id ?: updateTg.callbackQuery?.message?.chat?.id ?: return
     val data = updateTg.callbackQuery?.data ?: ""
-    println("2 $chatId")
 //проверяем есть ли юзер в базе
     getUserRecordIdFromAt(chatId, airtable)
 //обрабатываем команду или сообщение от пользователя
@@ -102,13 +102,14 @@ fun handleUpdate(
             val sendMessageFromUser = message.substringAfter("тест")
             val textForUser =
                 sendMessageFromUser.let { it -> sendMessageFromUser.substring(it.indexOfFirst { it.isLetter() }) }
-            gptBot.gigaChatRequest.messages[0].content = textForUser
-            val listOfFood = gptBot.getGigaChatResponse().choices[0].message.content
+//            openAiBot.gigaChatRequest.messages[0].content = textForUser
+            openAiBot.openAiBotRequest.messages[0].content = textForUser
+            val listOfFood = openAiBot.getOpenAiBotResponse().choices[0].message.content
             tg.sendMessage(chatId, listOfFood)
         }
 //тест
         message.lowercase() == "т" -> {
-            println(gptBot.getGigaChatModel())
+//            println(openAiBot.getGigaChatModel())
         }
 //Стартовое меню
         message.lowercase() == MenuItem.ITEM_0.menuItem || data == MenuItem.ITEM_0.menuItem -> {
@@ -164,7 +165,7 @@ fun handleUpdate(
             val humanDataFull = userDataFullRecord.fields.humanData
             if (humanDataFull != "") {
                 val humanData = humanDataFull.split("|")
-                gptBot.gigaChatRequest.messages[0].content =
+                openAiBot.openAiBotRequest.messages[0].content =
                     "Предложи мне список блюд на неделю. Учитывай мои данные и исключения: " +
                             "пол ${humanData[0]}, " +
                             "год рождения ${humanData[1]}, " +
@@ -172,7 +173,7 @@ fun handleUpdate(
                             "вес ${humanData[3]}. " +
                             "$foodPreferences. " +
                             "$foodExclude."
-                val gptBotResponse = gptBot.getGigaChatResponse().choices[0].message.content
+                val gptBotResponse = openAiBot.getOpenAiBotResponse().choices[0].message.content
 //                gptBotResponse = gptBotResponse.substringAfter("Понедельник")
 //                gptBotResponse = "Понедельник$gptBotResponse"
 //                gptBotResponse = gptBotResponse.replace("\n\n", "\n")
@@ -181,11 +182,11 @@ fun handleUpdate(
                 tg.sendGenerationMenu(chatId, gptBotResponse)
                 savedUserMenuData[chatId] = gptBotResponse
             } else {
-                gptBot.gigaChatRequest.messages[0].content =
+                openAiBot.openAiBotRequest.messages[0].content =
                     "Предложи мне список блюд на неделю. Учитывай мои данные и исключения: " +
                             "$foodPreferences. " +
                             "$foodExclude."
-                var gptBotResponse = gptBot.getGigaChatResponse().choices[0].message.content
+                var gptBotResponse = openAiBot.getOpenAiBotResponse().choices[0].message.content
                 gptBotResponse = gptBotResponse.substringAfter("Понедельник")
                 gptBotResponse = "Понедельник$gptBotResponse"
 
@@ -198,11 +199,11 @@ fun handleUpdate(
 //выслать новое меню на неделю пользователю
         data == MenuItem.ITEM_17.menuItem -> {
             tg.sendMessage(chatId, "Немного подождите, подбираем меню")
-            gptBot.gigaChatRequest.messages[0].content =
+            openAiBot.openAiBotRequest.messages[0].content =
                 "Вот список блюд на неделю: ${savedUserMenuData[chatId]}. " +
                         "Выполни в точности все уточнения и пришли новый список"
 
-            val gptBotResponse = gptBot.getGigaChatResponse().choices[0].message.content
+            val gptBotResponse = openAiBot.getOpenAiBotResponse().choices[0].message.content
 
             airtable.patchAirtable("listOfDish", gptBotResponse)
             tg.sendGenerationMenu(chatId, gptBotResponse)
@@ -214,11 +215,11 @@ fun handleUpdate(
 
             val listOfDish = airtable.getUserRecord().fields.listOfDish
             val content = listOfDish.replace("\n", " ").trim()
-            gptBot.gigaChatRequest.messages[0].content = "Вот мой список блюд: $content. " +
+            openAiBot.openAiBotRequest.messages[0].content = "Вот мой список блюд: $content. " +
                     "Составь общий список продуктов для разовой покупки в магазине для моих блюд. " +
                     "Обязательно с весом всех ингредиентов. Не дублируй ингредиенты"
 
-            val listOfFood = gptBot.getGigaChatResponse().choices[0].message.content
+            val listOfFood = openAiBot.getOpenAiBotResponse().choices[0].message.content
             airtable.patchAirtable("listOfIngredients", listOfFood)
 
             tg.sendMessage(chatId, listOfFood)
