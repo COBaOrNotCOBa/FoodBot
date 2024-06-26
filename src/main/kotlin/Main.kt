@@ -108,7 +108,7 @@ fun handleUpdate(
         }
 //тест
         message.lowercase() == "т" -> {
-            println(gptBot.getGigaChatModel())
+
         }
 //Стартовое меню
         message.lowercase() == MenuItem.ITEM_0.menuItem || data == MenuItem.ITEM_0.menuItem -> {
