@@ -83,11 +83,12 @@ data class BotCommand(
     val description: String
 )
 
-class Tg(
-    private val tokenBot: String,
-    private val json: Json,
-) {
+object Tg {
+    var tokenBot: String = ""
+    private val json: Json = Json { ignoreUnknownKeys = true }
 
+    //временное хранения меню пользователя
+    val savedUserMenuData = mutableMapOf<Long, String>()
     fun getUpdates(updateId: Long): String {
         val urlGetUpdates = "https://api.telegram.org/bot$tokenBot/getUpdates?offset=$updateId"
         val client = OkHttpClient()
@@ -333,6 +334,12 @@ class Tg(
             ""
         }
         response.close()
+    }
+
+    fun processFoodTypeUpdate(chatId: Long, foodTypeMessage: String, updateUserMenuMessage: String) {
+        sendMessage(chatId, foodTypeMessage)
+        sendChangingMenu(chatId)
+        savedUserMenuData[chatId] = savedUserMenuData[chatId] + updateUserMenuMessage
     }
 }
 

@@ -83,13 +83,12 @@ data class Usage(
     val systemTokens: Int? = null,
 )
 
-class GptBot(
-    private val json: Json,
-    private val clientSecretIdGpt: String,
-    private val clientSecretGpt: String,
-    private var lastTokenGenerationTime: Long = 0,
-    var tokenBotGpt: String = "",
-) {
+object GptBot {
+    var clientSecretIdGpt: String = ""
+    var clientSecretGpt: String = ""
+    var tokenBotGpt: String = ""
+    private val json = Json { ignoreUnknownKeys = true }
+    private var lastTokenGenerationTime: Long = 0
     val gigaChatRequest: GigaChatRequest = GigaChatRequest(
         model = "GigaChat",
         messages = listOf(MessagePromptGpt(role = "user", content = "Привет")),

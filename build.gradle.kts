@@ -8,6 +8,7 @@ group = "org.example"
 version = "1.0-SNAPSHOT"
 
 repositories {
+    google()
     mavenCentral()
 }
 
@@ -29,3 +30,4 @@ kotlin {
 application {
     mainClass.set("MainKt")
 }
+
