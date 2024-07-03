@@ -8,7 +8,6 @@ val coroutineScope = CoroutineScope(coroutineContext)
 
 fun main(args: Array<String>) {
 
-    val json = Json { ignoreUnknownKeys = true }
 //создаем объект Tg для телеграмм
     val tg = Tg
     tg.tokenBot = args[0]
@@ -48,6 +47,7 @@ fun main(args: Array<String>) {
                     continue
                 }
 //получаем список апдейтов и проверяем не пустые ли они. После по очереди обрабатываем
+                val json = Json { ignoreUnknownKeys = true }
                 val responseTg: ResponseTg = json.decodeFromString(responseStringTg)
                 if (responseTg.result.isEmpty()) continue
 //проверяем токен gptbota
