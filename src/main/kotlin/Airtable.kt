@@ -41,14 +41,12 @@ data class Fields(
     val listOfIngredients: String = "",
 )
 
-class Airtable(
-    private val tokenBotAt: String,
-    private val airBaseId: String,
-    private val tableId: String,
-    private val json: Json,
-    var userId: String = "",
-) {
-
+object Airtable {
+    var tokenBotAt: String = ""
+    var airBaseId: String = ""
+    var tableId: String = ""
+    private val json = Json { ignoreUnknownKeys = true }
+    var userId: String = ""
     fun getUpdateAt(): ResponseAt {
         val resultAt = runCatching { getAirtable() }.getOrNull() ?: ""
         println(resultAt)

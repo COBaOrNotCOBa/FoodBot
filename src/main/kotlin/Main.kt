@@ -7,28 +7,30 @@ val coroutineContext: CoroutineContext = Executors.newFixedThreadPool(4).asCorou
 val coroutineScope = CoroutineScope(coroutineContext)
 
 fun main(args: Array<String>) {
-//исходные данные
-    val tokenBotAt = args[1]
-    val baseIdAt = args[2]
-    val tableIdAt = args[3]
-    val clientSecretIdGpt = args[4]
-    val clientSecretGpt = args[5]
 
-    var lastUpdateId = 0L
     val json = Json { ignoreUnknownKeys = true }
-//создаем класс Tg для телеграмм
-    val tg = Tg(args[0], json)
-//Создаем экземпляр для GPT бота
-    val gptBot = GptBot(json, clientSecretIdGpt, clientSecretGpt)
-//создаем класс таблицы для базы данных АТ
-    val airtable = Airtable(tokenBotAt, baseIdAt, tableIdAt, json)
+//создаем объект Tg для телеграмм
+    val tg = Tg
+    tg.tokenBot = args[0]
+
+//Создаем объект для GPT бота
+    val gptBot = GptBot
+    gptBot.clientSecretIdGpt = args[4]
+    gptBot.clientSecretGpt = args[5]
+
+//создаем объект для базы данных АТ
+    val airtable = Airtable
+    airtable.tokenBotAt = args[1]
+    airtable.airBaseId = args[2]
+    airtable.tableId = args[3]
+
 //создаем список пользователей которые вводят данные последовательно
     val waitingForInput = mutableMapOf<Long, UserInput>()
-//будем хранить тут список блюд пользователя
-    val savedUserMenuData = mutableMapOf<Long, String>()
+
 //меню команд в телеграмме
     tg.botCommand(listOf(BotCommand("start", "Глвное меню")))
 
+    var lastUpdateId = 0L
     coroutineScope.launch {
 //обновления каждые 2.5 секунд, проверка были ли запросы из телеграмма
         while (true) {
@@ -62,7 +64,6 @@ fun main(args: Array<String>) {
                                 airtable,
                                 gptBot,
                                 waitingForInput,
-                                savedUserMenuData,
                             )
                         }
                     } catch (e: Exception) {
@@ -83,12 +84,11 @@ fun handleUpdate(
     airtable: Airtable,
     gptBot: GptBot,
     waitingForInput: MutableMap<Long, UserInput>,
-    savedUserMenuData: MutableMap<Long, String>,
 ) {
     val message = updateTg.message?.text ?: ""
     val chatId = updateTg.message?.chat?.id ?: updateTg.callbackQuery?.message?.chat?.id ?: return
     val data = updateTg.callbackQuery?.data ?: ""
-    println("2 $chatId")
+    println("User ID $chatId")
 //проверяем есть ли юзер в базе
     getUserRecordIdFromAt(chatId, airtable)
 //обрабатываем команду или сообщение от пользователя
@@ -173,40 +173,34 @@ fun handleUpdate(
                             "$foodPreferences. " +
                             "$foodExclude."
                 val gptBotResponse = gptBot.getGigaChatResponse().choices[0].message.content
-//                gptBotResponse = gptBotResponse.substringAfter("Понедельник")
-//                gptBotResponse = "Понедельник$gptBotResponse"
-//                gptBotResponse = gptBotResponse.replace("\n\n", "\n")
 
                 airtable.patchAirtable("listOfDish", gptBotResponse)
                 tg.sendGenerationMenu(chatId, gptBotResponse)
-                savedUserMenuData[chatId] = gptBotResponse
+                tg.savedUserMenuData[chatId] = gptBotResponse
             } else {
                 gptBot.gigaChatRequest.messages[0].content =
                     "Предложи мне список блюд на неделю. Учитывай мои данные и исключения: " +
                             "$foodPreferences. " +
                             "$foodExclude."
                 var gptBotResponse = gptBot.getGigaChatResponse().choices[0].message.content
-                gptBotResponse = gptBotResponse.substringAfter("Понедельник")
-                gptBotResponse = "Понедельник$gptBotResponse"
 
                 airtable.patchAirtable("listOfDish", gptBotResponse)
                 tg.sendGenerationMenu(chatId, gptBotResponse)
-                savedUserMenuData[chatId] = gptBotResponse
+                tg.savedUserMenuData[chatId] = gptBotResponse
             }
-
         }
 //выслать новое меню на неделю пользователю
         data == MenuItem.ITEM_17.menuItem -> {
             tg.sendMessage(chatId, "Немного подождите, подбираем меню")
             gptBot.gigaChatRequest.messages[0].content =
-                "Вот список блюд на неделю: ${savedUserMenuData[chatId]}. " +
+                "Вот список блюд на неделю: ${tg.savedUserMenuData[chatId]}. " +
                         "Выполни в точности все уточнения и пришли новый список"
 
             val gptBotResponse = gptBot.getGigaChatResponse().choices[0].message.content
 
             airtable.patchAirtable("listOfDish", gptBotResponse)
             tg.sendGenerationMenu(chatId, gptBotResponse)
-            savedUserMenuData[chatId] = gptBotResponse
+            tg.savedUserMenuData[chatId] = gptBotResponse
         }
 //Список продуктов для покупки сгенерированный ботом
         data == MenuItem.ITEM_9.menuItem -> {
@@ -227,47 +221,47 @@ fun handleUpdate(
         data == MenuItem.ITEM_10.menuItem -> {
             tg.sendChangingMenu(chatId)
         }
-//Больше мяса
+
         data == MenuItem.ITEM_11.menuItem -> {
-            tg.sendMessage(chatId, "Теперь будем предлагать больше мясных блюд")
-            tg.sendChangingMenu(chatId)
-            savedUserMenuData[chatId] =
-                savedUserMenuData[chatId] + " Измени этот список чтобы было больше мясных блюд."
+            tg.processFoodTypeUpdate(
+                chatId, "Теперь будем предлагать больше мясных блюд",
+                " Измени этот список чтобы было больше мясных блюд."
+            )
         }
-//Меньше мяса
+
         data == MenuItem.ITEM_12.menuItem -> {
-            tg.sendMessage(chatId, "Теперь будем предлагать меньше мясных блюд")
-            tg.sendChangingMenu(chatId)
-            savedUserMenuData[chatId] =
-                savedUserMenuData[chatId] + " Измени этот список чтобы было меньше мясных блюд."
+            tg.processFoodTypeUpdate(
+                chatId, "Теперь будем предлагать меньше мясных блюд",
+                " Измени этот список чтобы было меньше мясных блюд."
+            )
         }
-//Больше рыбы
+
         data == MenuItem.ITEM_13.menuItem -> {
-            tg.sendMessage(chatId, "Теперь будем предлагать больше рыбных блюд")
-            tg.sendChangingMenu(chatId)
-            savedUserMenuData[chatId] =
-                savedUserMenuData[chatId] + " Измени этот список чтобы было больше рыбных блюд."
+            tg.processFoodTypeUpdate(
+                chatId, "Теперь будем предлагать больше рыбных блюд",
+                " Измени этот список чтобы было больше рыбных блюд."
+            )
         }
-//Меньше рыбы
+
         data == MenuItem.ITEM_14.menuItem -> {
-            tg.sendMessage(chatId, "Теперь будем предлагать меньше рыбных блюд")
-            tg.sendChangingMenu(chatId)
-            savedUserMenuData[chatId] =
-                savedUserMenuData[chatId] + " Измени этот список чтобы было меньше рыбных блюд."
+            tg.processFoodTypeUpdate(
+                chatId, "Теперь будем предлагать меньше рыбных блюд",
+                " Измени этот список чтобы было меньше рыбных блюд."
+            )
         }
-//Больше овощей
+
         data == MenuItem.ITEM_15.menuItem -> {
-            tg.sendMessage(chatId, "Теперь будем предлагать больше овощных блюд")
-            tg.sendChangingMenu(chatId)
-            savedUserMenuData[chatId] =
-                savedUserMenuData[chatId] + " Измени этот список чтобы было больше овощьных блюд."
+            tg.processFoodTypeUpdate(
+                chatId, "Теперь будем предлагать больше овощных блюд",
+                " Измени этот список чтобы было больше овощных блюд."
+            )
         }
-//Меньше овощей
+
         data == MenuItem.ITEM_16.menuItem -> {
-            tg.sendMessage(chatId, "Теперь будем предлагать меньше овощных блюд")
-            tg.sendChangingMenu(chatId)
-            savedUserMenuData[chatId] =
-                savedUserMenuData[chatId] + " Измени этот список чтобы было меньше овощьных блюд."
+            tg.processFoodTypeUpdate(
+                chatId, "Теперь будем предлагать меньше овощных блюд",
+                " Измени этот список чтобы было меньше овощных блюд."
+            )
         }
 //Меню с данными пользователя и их редактированием
         data == MenuItem.ITEM_2.menuItem -> {
