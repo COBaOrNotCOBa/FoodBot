@@ -182,7 +182,7 @@ fun handleUpdate(
                     "Предложи мне список блюд на неделю. Учитывай мои данные и исключения: " +
                             "$foodPreferences. " +
                             "$foodExclude."
-                var gptBotResponse = gptBot.getGigaChatResponse().choices[0].message.content
+                val gptBotResponse = gptBot.getGigaChatResponse().choices[0].message.content
 
                 airtable.patchAirtable("listOfDish", gptBotResponse)
                 tg.sendGenerationMenu(chatId, gptBotResponse)
