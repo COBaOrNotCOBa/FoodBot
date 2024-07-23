@@ -1,10 +1,13 @@
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import java.util.concurrent.Executors
 import kotlin.coroutines.CoroutineContext
 
 val coroutineContext: CoroutineContext = Executors.newFixedThreadPool(4).asCoroutineDispatcher()
 val coroutineScope = CoroutineScope(coroutineContext)
+val mutex = Mutex()
 
 fun main(args: Array<String>) {
 
@@ -50,11 +53,12 @@ fun main(args: Array<String>) {
                 val json = Json { ignoreUnknownKeys = true }
                 val responseTg: ResponseTg = json.decodeFromString(responseStringTg)
                 if (responseTg.result.isEmpty()) continue
-//проверяем токен gptbota
-                gptBot.tokenBotGpt = gptBot.getTokenWhenNeeded()
 //сортируем входящие запросы
                 val sortedUpdates = responseTg.result.sortedBy { it.updateId }
-                lastUpdateId = sortedUpdates.last().updateId + 1
+// Acquire the lock to access and modify lastUpdateId
+                mutex.withLock {
+                    lastUpdateId = sortedUpdates.last().updateId + 1
+                }
                 launch {
                     try {
                         sortedUpdates.forEach {
@@ -78,7 +82,7 @@ fun main(args: Array<String>) {
 }
 
 //разбиваем апдейт на куски
-fun handleUpdate(
+suspend fun handleUpdate(
     updateTg: Update,
     tg: Tg,
     airtable: Airtable,
@@ -88,15 +92,24 @@ fun handleUpdate(
     val message = updateTg.message?.text ?: ""
     val chatId = updateTg.message?.chat?.id ?: updateTg.callbackQuery?.message?.chat?.id ?: return
     val data = updateTg.callbackQuery?.data ?: ""
+
     println("User ID $chatId")
+//Стартовое меню
+    if (message.lowercase() == MenuItem.ITEM_0.menuItem || data == MenuItem.ITEM_0.menuItem) {
+        tg.sendMenu(chatId)
+        return
+    }
+
 //проверяем есть ли юзер в базе
-    getUserRecordIdFromAt(chatId, airtable)
+    airtable.getUserRecordIdFromAt(chatId)
+//проверяем токен gptbota
+    gptBot.tokenBotGpt = gptBot.getTokenWhenNeeded()
 //обрабатываем команду или сообщение от пользователя
     when {
-//при первом обращении сразу предлагает ввести основные данные
-        waitingForInput[chatId]?.step == 1 -> {
-            userInputData(chatId, message, tg, waitingForInput[chatId], airtable)
-        }
+////при первом обращении сразу предлогает ввести основные данные
+//        waitingForInput[chatId]?.step == 1 -> {
+//            userInputData(chatId, message, tg, waitingForInput[chatId], airtable)
+//        }
 //тест
         (message.startsWith("тест")) -> {
             val sendMessageFromUser = message.substringAfter("тест")
@@ -112,7 +125,7 @@ fun handleUpdate(
         }
 //Стартовое меню
         message.lowercase() == MenuItem.ITEM_0.menuItem || data == MenuItem.ITEM_0.menuItem -> {
-            tg.sendMenu(chatId)
+//            tg.sendMenu(chatId)
         }
 
         data == "foodPreferencesSave" -> {

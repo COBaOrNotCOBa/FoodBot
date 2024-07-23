@@ -1,3 +1,4 @@
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -46,7 +47,7 @@ object Airtable {
     var airBaseId: String = ""
     var tableId: String = ""
     private val json = Json { ignoreUnknownKeys = true }
-    var userId: String = ""
+    private var userId: String = ""
     fun getUpdateAt(): ResponseAt {
         val resultAt = runCatching { getAirtable() }.getOrNull() ?: ""
         println(resultAt)
@@ -91,12 +92,6 @@ object Airtable {
         }
     }
 
-    fun getIdForNewUser(fields: Map<String, String>): Records {
-        val resultRecord = runCatching { postAirtable(fields) }.getOrNull() ?: ""
-        println(resultRecord)
-        return json.decodeFromString(resultRecord)
-    }
-
     private fun postAirtable(fields: Map<String, String>): String {
         val client = OkHttpClient()
         val fieldsJson = fields.entries.joinToString(separator = ",") {
@@ -139,7 +134,6 @@ object Airtable {
         }
     }
 
-
     fun patchAirtable(field: String, text: String): String {
         val client = OkHttpClient()
         val url = "https://api.airtable.com/v0/$airBaseId/$tableId/$userId"
@@ -178,12 +172,26 @@ object Airtable {
     }
 
     //проверяем есть ли текущий пользователь в списке
-    fun checkUserInBase(loadListOfUsersId: Map<String, String>, userIdTg: String): String? {
-        return loadListOfUsersId[userIdTg]
+    suspend fun getUserRecordIdFromAt(chatId: Long) {
+        mutex.withLock {
+            val listOfUsers = loadListOfUsersId()
+            userId = listOfUsers[chatId.toString()].takeIf { it?.isNotEmpty() ?: false }
+                ?: run {
+                    val userIdFromAt = getIdForNewUser(mapOf("userID" to chatId.toString()))
+                    saveListOfUsersId(listOfUsers + (chatId.toString() to userIdFromAt.id))
+                    userIdFromAt.id
+                }
+        }
     }
 
-    //загружаем существующий список пользователей
-    fun loadListOfUsersId(): Map<String, String> {
+    private fun getIdForNewUser(fields: Map<String, String>): Records {
+        val resultRecord = runCatching { postAirtable(fields) }.getOrNull() ?: ""
+        println(resultRecord)
+        return json.decodeFromString(resultRecord)
+    }
+
+//загружаем существующий список пользователей
+    private fun loadListOfUsersId(): Map<String, String> {
         try {
             val wordsFile: File = File("src/main/kotlin/Users.txt")
             val listOfUsers: MutableMap<String, String> = mutableMapOf()
@@ -198,7 +206,7 @@ object Airtable {
     }
 
     //заносим нового пользователя в список
-    fun saveListOfUsersId(listOfUsers: Map<String, String>) {
+    private fun saveListOfUsersId(listOfUsers: Map<String, String>) {
         try {
             val wordsFile = File("src/main/kotlin/Users.txt")
             val writer = FileWriter(wordsFile)
