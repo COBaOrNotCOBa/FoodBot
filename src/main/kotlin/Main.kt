@@ -122,6 +122,15 @@ suspend fun handleUpdate(
 //тест
         message.lowercase() == "т" -> {
 
+            UsersDatabase.apply {
+                println(searchUserTgId(chatId)?.user_tg_id ?: "empt")
+                searchUserTgId(chatId) ?: addUser(chatId)
+                println(searchUserTgId(chatId)?.user_tg_id)
+                updateUserData("мужской|1986|183|74",chatId)
+                deleteUser("100")
+//            UsersDatabase.listOfDb()
+//    UsersDatabase.addUser(chatId)
+            }
         }
 //Стартовое меню
         message.lowercase() == MenuItem.ITEM_0.menuItem || data == MenuItem.ITEM_0.menuItem -> {

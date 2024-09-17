@@ -1,0 +1,48 @@
+CREATE TABLE UsersData (
+  user_tg_id INTEGER PRIMARY KEY NOT NULL,
+  airtable_user_record_id TEXT DEFAULT NULL,
+  user_data TEXT DEFAULT NULL,
+  food_preferences TEXT DEFAULT NULL,
+  food_exclude TEXT DEFAULT NULL,
+  list_of_dishes TEXT DEFAULT NULL,
+  list_of_ingredients TEXT DEFAULT NULL
+);
+
+CREATE INDEX UsersData_user_tg_id ON UsersData(user_tg_id);
+
+selectAll:
+SELECT *
+FROM UsersData;
+
+userTgId:
+SELECT * FROM UsersData
+WHERE user_tg_id LIKE :searchQuery;
+
+insertUserId:
+INSERT INTO UsersData(user_tg_id)
+VALUES (?);
+
+insert:
+INSERT INTO UsersData(
+user_tg_id,
+airtable_user_record_id,
+user_data, food_preferences,
+food_exclude, list_of_dishes,
+list_of_ingredients)
+VALUES (?, ?,?,?,?,?,?);
+
+insertFullUserObject:
+INSERT INTO UsersData(
+                  user_tg_id,
+                  airtable_user_record_id,
+                  user_data, food_preferences,
+                  food_exclude, list_of_dishes,
+                  list_of_ingredients)
+VALUES ?;
+
+update:
+UPDATE UsersData
+SET user_data =? WHERE user_tg_id =?;
+
+delete:
+DELETE FROM UsersData WHERE user_tg_id =?;
