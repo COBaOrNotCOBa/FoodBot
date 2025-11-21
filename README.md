@@ -62,16 +62,19 @@ Linux / macOS:
 bash
 Копировать код
 ./gradlew installDist
+
 Windows:
 
 bash
 Копировать код
 gradlew.bat installDist
+
 После этого появится каталог:
 
 text
 Копировать код
 build/install/<имя-проекта>/
+
 Внутри будет:
 
 папка bin со скриптами запуска (<имя-проекта> / <имя-проекта>.bat);
