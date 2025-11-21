@@ -35,47 +35,45 @@
 
 ### Клонирование репозитория
 
-```bash
-git clone https://github.com/COBaOrNotCOBa/FoodBot.git
-cd FoodBot
+    git clone https://github.com/COBaOrNotCOBa/FoodBot.git
+    cd FoodBot
+
 Если репозиторий называется иначе — поменяйте URL и имя каталога.
 
-Запуск через Gradle Wrapper
+### Запуск через Gradle Wrapper
+
 Linux / macOS:
 
-bash
-Копировать код
-./gradlew run
+    ./gradlew run
+
 Windows:
 
-bash
-Копировать код
-gradlew.bat run
-Приложение запустится с точкой входа MainKt, указанной в блоке application Gradle-скрипта.
+    gradlew.bat run
 
-Сборка дистрибутива (по желанию)
+Приложение запустится с точкой входа `MainKt`, указанной в блоке `application` Gradle-скрипта.
+
+### Сборка дистрибутива (по желанию)
+
 Можно собрать дистрибутив с готовыми скриптами запуска.
 
 Linux / macOS:
 
-bash
-Копировать код
-./gradlew installDist
+    ./gradlew installDist
+
 Windows:
 
-bash
-Копировать код
-gradlew.bat installDist
+    gradlew.bat installDist
+
 После этого появится каталог:
 
-text
-Копировать код
-build/install/<имя-проекта>/
+    build/install/<имя-проекта>/
+
 Внутри будет:
 
-папка bin со скриптами запуска (<имя-проекта> / <имя-проекта>.bat);
+- папка `bin` со скриптами запуска (`<имя-проекта>` / `<имя-проекта>.bat`);
+- папка `lib` с зависимостями.
 
-папка lib с зависимостями.
+## Статус проекта
 
-Статус проекта
-Учебно-экспериментальный проект: здесь обкатывается стек Kotlin + Coroutines + OkHttp + SQLDelight. Можно использовать как основу для дальнейших ботов/сервисов или для экспериментов с работой с БД и сетью.
+Учебно-экспериментальный проект: здесь обкатывается стек `Kotlin + Coroutines + OkHttp + SQLDelight`. Можно использовать как основу для дальнейших ботов/сервисов или для экспериментов с работой с БД и сетью.
+
