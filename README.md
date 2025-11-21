@@ -35,9 +35,9 @@
 
 ### 1. Клонировать репозиторий
 
-```bash
+bash
 git clone https://github.com/COBaOrNotCOBa/FoodBot.git
-cd FoodBot```
+cd FoodBot
 (Если репозиторий называется иначе — поменяй URL и каталог.)
 
 2. Запуск через Gradle Wrapper
