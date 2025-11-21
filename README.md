@@ -46,6 +46,7 @@ Linux / macOS:
 bash
 Копировать код
 ./gradlew run
+
 Windows:
 
 bash
